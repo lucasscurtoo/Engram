@@ -61,7 +61,7 @@ struct CardListView: View {
     }
 
     private var filters: some View {
-        HStack {
+        HStack(spacing: Theme.space2) {
             TextField("Search notes", text: $searchText)
                 .textFieldStyle(.roundedBorder)
             TextField("Tag", text: $tagFilter)
@@ -72,6 +72,7 @@ struct CardListView: View {
             } label: {
                 Label("Study Tag", systemImage: "play")
             }
+            .buttonStyle(.bordered)
             .disabled(tagFilter.isEmpty)
             .help("Study every card tagged “\(tagFilter)”")
             Button {
@@ -79,9 +80,10 @@ struct CardListView: View {
             } label: {
                 Label("New Note", systemImage: "plus")
             }
+            .buttonStyle(.bordered)
             .help("New note in this deck")
         }
-        .padding(8)
+        .padding(Theme.space4)
     }
 
     @ViewBuilder
@@ -164,8 +166,10 @@ private struct NoteRow: View {
     let note: Note
     let noteType: NoteType?
 
+    @State private var isHovering = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: Theme.space2) {
             if let def = noteType?.fields.first {
                 FieldContentView(def: def, content: note.fields[def.name] ?? "")
                     .lineLimit(2)
@@ -173,11 +177,26 @@ private struct NoteRow: View {
                 Text("Unknown note type").foregroundStyle(.secondary)
             }
             if !note.tags.isEmpty {
-                Text(note.tags.map { "#\($0)" }.joined(separator: " "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: Theme.space1) {
+                    ForEach(note.tags, id: \.self) { tag in
+                        Text(tag)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, Theme.space2)
+                            .padding(.vertical, Theme.space1 / 2)
+                            .background(.quaternary, in: .capsule)
+                    }
+                }
             }
         }
-        .padding(.vertical, 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, Theme.space2)
+        .padding(.horizontal, Theme.space2)
+        .background {
+            RoundedRectangle(cornerRadius: Theme.Radius.control)
+                .fill(.quaternary)
+                .opacity(isHovering ? 1 : 0)
+        }
+        .onHover { isHovering = $0 }
     }
 }

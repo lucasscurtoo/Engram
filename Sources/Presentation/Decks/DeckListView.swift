@@ -15,10 +15,11 @@ struct DeckListView: View {
 
     var body: some View {
         List(selection: $selection) {
-            Section("Decks") {
+            Section {
                 if model.tree.isEmpty {
-                    Text(model.isLoading ? "Loading…" : "No decks yet — create one")
+                    Text(model.isLoading ? "Loading…" : "No decks yet")
                         .foregroundStyle(.secondary)
+                        .padding(.vertical, Theme.space1)
                 } else {
                     OutlineGroup(model.tree, children: \.children) { node in
                         DeckRow(summary: node.summary)
@@ -28,11 +29,26 @@ struct DeckListView: View {
                 }
             }
             Section {
-                Label("Stats", systemImage: "chart.bar").tag(AppRoute.stats)
-                Label("Focus", systemImage: "timer").tag(AppRoute.focus)
+                SidebarRow(title: "Stats", symbol: "chart.bar.xaxis").tag(AppRoute.stats)
+                SidebarRow(title: "Focus", symbol: "timer").tag(AppRoute.focus)
             }
         }
         .navigationTitle(AppInfo.name)
+        // Things' "+ New List": always reachable, never in the way.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            Button {
+                sheet = .add(parentID: nil)
+            } label: {
+                Label("New Deck", systemImage: "plus")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, Theme.space3)
+            .padding(.vertical, Theme.space2)
+        }
         .toolbar {
             Button {
                 launcher.scope = .all
@@ -113,23 +129,51 @@ private enum DeckSheet: Identifiable {
     }
 }
 
+/// Sidebar entry with the app's quiet icon treatment. Used by the fixed rows;
+/// `DeckRow` mirrors its metrics so every row in the list lines up.
+private struct SidebarRow: View {
+    let title: String
+    let symbol: String
+
+    var body: some View {
+        HStack(spacing: Theme.space2) {
+            Image(systemName: symbol)
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            Text(title)
+        }
+        .padding(.vertical, Theme.space1)
+    }
+}
+
 private struct DeckRow: View {
     let summary: DeckService.DeckSummary
 
     var body: some View {
-        HStack {
-            Label(summary.deck.name, systemImage: "rectangle.stack")
-            Spacer()
-            if summary.dueCount > 0 {
-                Text("\(summary.dueCount)")
-                    .monospacedDigit()
-                    .foregroundStyle(.tint)
-                    .help("Due today")
-            }
-            Text("\(summary.cardCount)")
-                .monospacedDigit()
+        HStack(spacing: Theme.space2) {
+            Image(systemName: "rectangle.stack")
                 .foregroundStyle(.secondary)
-                .help("Cards, subdecks included")
+                .frame(width: 18)
+            Text(summary.deck.name)
+                .lineLimit(1)
+            Spacer(minLength: Theme.space2)
+            dueBadge
+        }
+        .padding(.vertical, Theme.space1)
+    }
+
+    /// Accent capsule while something is due, a quiet nothing once the deck is clear.
+    @ViewBuilder
+    private var dueBadge: some View {
+        if summary.dueCount > 0 {
+            Text("\(summary.dueCount)")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.white)
+                .padding(.horizontal, Theme.space2)
+                .padding(.vertical, Theme.space1 / 2)
+                .background(Theme.accent, in: .capsule)
+                .help("Due today")
         }
     }
 }

@@ -33,12 +33,14 @@ struct StatsView: View {
                 )
             } else if let overview = model.overview {
                 if model.hasHistory {
-                    ScrollView { OverviewCharts(overview: overview).padding() }
+                    ScrollView {
+                        OverviewCharts(overview: overview).padding(Theme.space5)
+                    }
                 } else {
                     ContentUnavailableView(
-                        "Study a bit first…",
-                        systemImage: "chart.bar",
-                        description: Text("Your review and focus history will show up here.")
+                        "No history yet",
+                        systemImage: "chart.bar.xaxis",
+                        description: Text("Study a few cards and your progress will show up here.")
                     )
                 }
             } else {
@@ -57,11 +59,11 @@ private struct OverviewCharts: View {
     let overview: StatsService.Overview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(spacing: 16) {
-                BigNumber(title: "Retention", value: Self.percent(overview.retention))
-                BigNumber(title: "Due today", value: "\(overview.dueToday)")
-                BigNumber(title: "Due next 7 days", value: "\(overview.dueNextSevenDays)")
+        VStack(alignment: .leading, spacing: Theme.space6) {
+            HStack(spacing: Theme.space4) {
+                StatTile(title: "Retention", value: Self.percent(overview.retention))
+                StatTile(title: "Due today", value: "\(overview.dueToday)")
+                StatTile(title: "Due next 7 days", value: "\(overview.dueNextSevenDays)")
             }
 
             ChartSection(title: "Reviews per day", subtitle: "Last 30 days") {
@@ -70,6 +72,7 @@ private struct OverviewCharts: View {
                         x: .value("Day", entry.day, unit: .day),
                         y: .value("Reviews", entry.count)
                     )
+                    .foregroundStyle(Theme.accent.gradient)
                 }
             }
 
@@ -95,6 +98,9 @@ private struct OverviewCharts: View {
                         x: .value("Day", entry.day, unit: .day),
                         y: .value("Minutes", entry.count)
                     )
+                    // Quieter than the review bars so the two charts read as a pair
+                    // without competing.
+                    .foregroundStyle(Theme.accent.opacity(0.55).gradient)
                 }
             }
         }
@@ -115,30 +121,13 @@ private struct OverviewCharts: View {
     }
 }
 
-private struct BigNumber: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(value).font(.system(.largeTitle, design: .rounded).weight(.semibold))
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
-        // One VoiceOver stop per tile: "Retention, 87%".
-        .accessibilityElement(children: .combine)
-    }
-}
-
 private struct ChartSection<Content: View>: View {
     let title: String
     let subtitle: String?
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: Theme.space2) {
             Text(title).font(.headline)
             if let subtitle {
                 Text(subtitle).font(.caption).foregroundStyle(.secondary)

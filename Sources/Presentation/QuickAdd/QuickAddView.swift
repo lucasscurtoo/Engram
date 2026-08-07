@@ -24,11 +24,12 @@ struct QuickAddView: View {
                 ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if decks.isEmpty {
                 ContentUnavailableView(
-                    "No decks yet — create one",
+                    "No decks yet",
                     systemImage: "rectangle.stack",
-                    description: Text("Add a deck in the main window first.")
+                    description: Text("Create a deck in the main window first.")
                 )
             } else {
+                pickers
                 form
                 footer
             }
@@ -39,20 +40,35 @@ struct QuickAddView: View {
         .onExitCommand { dismiss() }
     }
 
-    private var form: some View {
-        Form {
+    /// Deck (and note type) live above the form as compact menus — Things' quick-entry
+    /// habit of putting "where does this go" first, without a labelled form row.
+    private var pickers: some View {
+        HStack(spacing: Theme.space2) {
             Picker("Deck", selection: $selectedDeckID) {
                 ForEach(sortedDecks, id: \.id) { deck in
                     Text(DeckTree.fullName(of: deck.id, in: decks)).tag(UUID?.some(deck.id))
                 }
             }
+            .pickerStyle(.menu)
+            .labelsHidden()
             if noteTypes.count > 1 {
                 Picker("Note type", selection: $selectedNoteTypeID) {
                     ForEach(noteTypes, id: \.id) { type in
                         Text(type.name).tag(UUID?.some(type.id))
                     }
                 }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .fixedSize()
             }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, Theme.space4)
+        .padding(.top, Theme.space4)
+    }
+
+    private var form: some View {
+        Form {
             if let noteType {
                 NoteFieldsEditor(noteType: noteType, fields: $fields, tagsText: $tagsText)
             }
@@ -61,7 +77,7 @@ struct QuickAddView: View {
     }
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: Theme.space2) {
             if savedCount > 0 {
                 Text(savedCount == 1 ? "1 note added" : "\(savedCount) notes added")
                     .font(.callout)
@@ -71,10 +87,12 @@ struct QuickAddView: View {
             Button("Close") { dismiss() }
                 .keyboardShortcut(.cancelAction)
             Button("Save") { save() }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canSave)
         }
-        .padding()
+        .padding(Theme.space4)
     }
 
     private var noteType: NoteType? {

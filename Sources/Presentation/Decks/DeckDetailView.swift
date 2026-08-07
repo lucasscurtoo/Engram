@@ -28,19 +28,28 @@ struct DeckDetailView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(alignment: .center, spacing: Theme.space4) {
+            VStack(alignment: .leading, spacing: Theme.space1) {
                 Text(DeckTree.fullName(of: summary.deck.id, in: decks))
                     .font(.title2)
+                    .fontWeight(.semibold)
                 Text("\(summary.cardCount) cards · \(summary.dueCount) due today")
-                    .font(.callout)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Spacer()
-            Button("Study") { launcher.scope = .deck(summary.deck.id) }
-                .keyboardShortcut("s", modifiers: [.command])
-                .help("Study this deck and its subdecks")
+            Spacer(minLength: Theme.space4)
+            // The one strong element on this screen.
+            Button {
+                launcher.scope = .deck(summary.deck.id)
+            } label: {
+                Label("Study", systemImage: "play.fill")
+            }
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+            .keyboardShortcut("s", modifiers: [.command])
+            .help("Study this deck and its subdecks")
         }
-        .padding()
+        .padding(Theme.space4)
     }
 }

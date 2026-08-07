@@ -28,14 +28,23 @@ struct ReviewSessionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            ProgressView(value: fractionDone)
+                .progressViewStyle(.linear)
+                .tint(Theme.accent)
             header
-            Divider()
             content
         }
         // Fixed on purpose: a review sheet that resizes per card is worse than one
         // that scrolls, and the card body already scrolls (`StudyCardView`).
         .frame(width: 760, height: 560)
+        .background(Theme.studyBackdrop)
         .task { await model.start() }
+    }
+
+    /// Share of the session's cards already graded — drives the top progress bar.
+    private var fractionDone: Double {
+        let total = model.progress.completed + model.progress.remaining
+        return total == 0 ? 0 : Double(model.progress.completed) / Double(total)
     }
 
     private var header: some View {
@@ -44,16 +53,19 @@ struct ReviewSessionView: View {
                 Label(message, systemImage: "exclamationmark.triangle")
                     .foregroundStyle(.red)
                     .lineLimit(1)
-            } else if model.item != nil {
-                Text("\(model.progress.remaining) remaining · \(model.progress.completed) done")
+            }
+            Spacer()
+            if model.errorMessage == nil, model.item != nil {
+                Text("\(model.progress.remaining) remaining")
+                    .font(.caption)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
-            Spacer()
             Button("Close") { dismiss() }
                 .keyboardShortcut(.cancelAction)
         }
-        .padding(12)
+        .padding(.horizontal, Theme.space4)
+        .padding(.vertical, Theme.space2)
     }
 
     @ViewBuilder
@@ -62,6 +74,10 @@ struct ReviewSessionView: View {
             spread { ProgressView() }
         } else if let item = model.item {
             StudyCardView(model: model, item: item)
+                .frame(maxWidth: 640)
+                .padding(.horizontal, Theme.space5)
+                .padding(.bottom, Theme.space5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else if model.isEmpty {
             spread {
                 ContentUnavailableView(
@@ -80,13 +96,13 @@ struct ReviewSessionView: View {
             ContentUnavailableView {
                 Label("Session complete", systemImage: "checkmark.seal")
             } description: {
-                Text(
-                    """
-                    \(model.progress.completed) cards reviewed · \
-                    \(model.progress.correct) correct (\(model.correctPercentage)%) · \
-                    \(model.elapsedMinutes) min
-                    """
-                )
+                HStack(spacing: Theme.space3) {
+                    StatTile(title: "Reviewed", value: "\(model.progress.completed)")
+                    StatTile(title: "Correct", value: "\(model.correctPercentage)%")
+                    StatTile(title: "Minutes", value: "\(model.elapsedMinutes)")
+                }
+                .frame(maxWidth: 420)
+                .padding(.top, Theme.space2)
             } actions: {
                 Button("Done") { dismiss() }
                     .keyboardShortcut(.defaultAction)

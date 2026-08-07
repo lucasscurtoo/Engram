@@ -108,7 +108,9 @@ struct ContentView: View {
                 FocusSessionView(model: dependencies.focus, decks: decks.decks)
             case nil:
                 ContentUnavailableView(
-                    "Select a deck to get started", systemImage: "rectangle.stack"
+                    "No deck selected",
+                    systemImage: "rectangle.stack",
+                    description: Text("Pick a deck in the sidebar to browse or study its cards.")
                 )
             }
         }

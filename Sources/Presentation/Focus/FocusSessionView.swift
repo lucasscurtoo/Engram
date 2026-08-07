@@ -115,6 +115,7 @@ struct FocusSessionView: View {
             Section {
                 Button("Start Focus") { Task { await model.start() } }
                     .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
                     .controlSize(.large)
                     .keyboardShortcut(.defaultAction)
             }
@@ -131,7 +132,7 @@ struct FocusSessionView: View {
     // MARK: - Running
 
     private var running: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: Theme.space5) {
             timer
             if model.isFocusing, let review = model.review {
                 embeddedStudy(review)
@@ -146,14 +147,16 @@ struct FocusSessionView: View {
             }
             controls
         }
-        .padding(24)
+        .padding(Theme.space5)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.studyBackdrop)
         .onChange(of: model.ambienceEnabled) { Task { await model.ambienceSettingsChanged() } }
         .onChange(of: model.ambienceTrack) { Task { await model.ambienceSettingsChanged() } }
         .onChange(of: model.ambienceVolume) { Task { await model.ambienceSettingsChanged() } }
     }
 
     private var timer: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Theme.space2) {
             Label(model.phaseTitle, systemImage: model.phaseSymbol)
                 .font(.headline)
                 .foregroundStyle(.secondary)
@@ -174,8 +177,8 @@ struct FocusSessionView: View {
                 }
             }
             if let progress = model.goalProgress {
-                VStack(spacing: 4) {
-                    ProgressView(value: progress)
+                VStack(spacing: Theme.space1) {
+                    ProgressView(value: progress).tint(Theme.accent)
                     if let detail = model.goalDetail {
                         Text(detail).font(.caption).foregroundStyle(.secondary)
                     }
@@ -194,10 +197,11 @@ struct FocusSessionView: View {
             if review.isLoading {
                 ProgressView().frame(maxHeight: .infinity)
             } else if let item = review.item {
+                // Elevation comes from `StudyCardView.cardSurface()`.
                 StudyCardView(model: review, item: item) {
                     Task { await model.recordCardGraded() }
                 }
-                .background(.background.secondary, in: .rect(cornerRadius: 12))
+                .frame(maxWidth: 640)
             } else {
                 ContentUnavailableView(
                     "Queue empty",
@@ -211,7 +215,7 @@ struct FocusSessionView: View {
     }
 
     private var breakScreen: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: Theme.space3) {
             Image(systemName: "cup.and.saucer")
                 .font(.system(size: 48))
                 .foregroundStyle(.tertiary)
@@ -222,7 +226,7 @@ struct FocusSessionView: View {
     }
 
     private var controls: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Theme.space3) {
             if model.isPaused {
                 Button("Resume") { Task { await model.resume() } }
                     .buttonStyle(.borderedProminent)
