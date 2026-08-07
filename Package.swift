@@ -16,6 +16,11 @@ let package = Package(
         .target(name: "Domain", path: "Sources/Domain"),
         .target(name: "Application", dependencies: ["Domain"], path: "Sources/Application"),
         .target(name: "Infrastructure", dependencies: ["Domain", "Application"], path: "Sources/Infrastructure"),
+        .executableTarget(
+            name: "EngramMCP",
+            dependencies: ["Domain", "Application", "Infrastructure"],
+            path: "Sources/MCP"
+        ),
         .testTarget(
             name: "DomainTests",
             dependencies: ["Domain", "Application"],

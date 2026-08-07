@@ -109,6 +109,32 @@ skipped if permission is denied, and ambient sound is disabled in the UI until
 `ambience-rain` / `ambience-whiteNoise` / `ambience-cafe` loops are bundled in
 the app target.
 
+## MCP server (Claude integration)
+
+`EngramMCP` is a local MCP server over the same store, so Claude Desktop /
+Claude Code can manage your cards — "add these 10 fraction cards to
+Math::Fractions" just works. Tools: `list_decks`, `create_deck`, `create_note`,
+`search_notes`, `get_stats`.
+
+```sh
+swift build -c release        # builds .build/release/EngramMCP
+```
+
+Claude Desktop — add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+
+```json
+{ "mcpServers": { "engram": { "command": "/path/to/Engram/.build/release/EngramMCP" } } }
+```
+
+Claude Code: `claude mcp add engram -- /path/to/Engram/.build/release/EngramMCP`
+
+**Local only, on purpose.** The store is personal data; a remote server would
+need hosting plus real OAuth to be safe, so there is none. The seam is ready if
+that ever changes (same tool table, second transport — see the TODO in
+`Sources/MCP/EngramMCPServer.swift`). `ENGRAM_STORE_DIRECTORY` overrides the
+store location for experiments. Notes created over MCP appear in the app when
+you reselect the deck.
+
 ## Status (milestones)
 
 - [x] **M0** — scaffold: XcodeGen project, SPM core, app opens a window
