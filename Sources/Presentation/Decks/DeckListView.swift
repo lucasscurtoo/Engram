@@ -246,6 +246,8 @@ private struct SidebarRow: View {
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        // Custom-drawn row: without this, VoiceOver reads an unnamed button.
+        .accessibilityLabel(title)
     }
 }
 
@@ -281,6 +283,12 @@ private struct DeckRow: View {
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+        // Custom-drawn row: without this, VoiceOver reads an unnamed button.
+        .accessibilityLabel(
+            summary.dueCount > 0
+                ? "\(summary.deck.name), \(summary.dueCount) due today"
+                : summary.deck.name
+        )
     }
 
     @ViewBuilder
