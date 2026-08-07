@@ -3,7 +3,10 @@ import Domain
 
 /// The SRS study mode (M4 core). Builds the day's queue and applies FSRS on grading.
 public actor ReviewSessionService: StudySession {
-    private let scheduler: any Scheduler
+    /// Seam 6: the scheduler is rebuilt per session from the scoped deck's config,
+    /// so requestRetention is per-deck. `.all`/`.tag` sessions use the default config.
+    private let makeScheduler: @Sendable (DeckConfig) -> any Scheduler
+    private var scheduler: any Scheduler
     private let deckRepository: any DeckRepository
     private let cardRepository: any CardRepository
     private let noteRepository: any NoteRepository
@@ -15,14 +18,17 @@ public actor ReviewSessionService: StudySession {
     private var correct = 0
 
     public init(
-        scheduler: any Scheduler,
+        makeScheduler: @escaping @Sendable (DeckConfig) -> any Scheduler = {
+            FSRS(parameters: FSRSParameters(deckConfig: $0))
+        },
         deckRepository: any DeckRepository,
         cardRepository: any CardRepository,
         noteRepository: any NoteRepository,
         noteTypeRepository: any NoteTypeRepository,
         reviewLogRepository: any ReviewLogRepository
     ) {
-        self.scheduler = scheduler
+        self.makeScheduler = makeScheduler
+        self.scheduler = makeScheduler(DeckConfig())
         self.deckRepository = deckRepository
         self.cardRepository = cardRepository
         self.noteRepository = noteRepository
@@ -42,6 +48,7 @@ public actor ReviewSessionService: StudySession {
         completed = 0
         correct = 0
         let (deckIDs, tag, config) = try await resolve(scope: scope)
+        scheduler = makeScheduler(config)
         let due = try await cardRepository.cards(matching: CardQuery(
             deckIDs: deckIDs, tag: tag,
             states: [.learning, .review, .relearning],

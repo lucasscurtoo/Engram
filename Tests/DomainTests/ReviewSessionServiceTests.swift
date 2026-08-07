@@ -12,7 +12,6 @@ struct ReviewSessionServiceTests {
         let deck = Deck(name: "Math", createdAt: start)
         var service: ReviewSessionService {
             ReviewSessionService(
-                scheduler: FSRS(),
                 deckRepository: InMemoryDeckRepository(store: store),
                 cardRepository: InMemoryCardRepository(store: store),
                 noteRepository: InMemoryNoteRepository(store: store),
@@ -96,6 +95,26 @@ struct ReviewSessionServiceTests {
         let session = fixture.service
         try await session.start(scope: .deck(fixture.deck.id), now: start)
         #expect(await session.progress.remaining == 2)
+    }
+
+    @Test func deckRetentionDrivesScheduling() async throws {
+        // Seam 6: lower requestRetention must schedule the same card further out.
+        func gradedInterval(retention: Double) async throws -> TimeInterval {
+            let fixture = Fixture()
+            await fixture.seed(notesFields: [["front": "q", "back": "a"]])
+            var deck = fixture.deck
+            deck.config.requestRetention = retention
+            await fixture.store.setDeck(deck)
+            let session = fixture.service
+            try await session.start(scope: .deck(deck.id), now: start)
+            let item = try #require(await session.currentItem)
+            try await session.grade(.easy, now: start) // graduates immediately
+            let card = try #require(await fixture.store.cards[item.card.id])
+            return card.due.timeIntervalSince(start)
+        }
+        let relaxed = try await gradedInterval(retention: 0.8)
+        let strict = try await gradedInterval(retention: 0.95)
+        #expect(relaxed > strict)
     }
 
     @Test func newCardLimitComesFromDeckConfig() async throws {
