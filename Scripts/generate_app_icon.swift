@@ -26,6 +26,8 @@ func roundedRect(_ ctx: CGContext, _ rect: CGRect, radius: CGFloat, fill: CGColo
     ctx.fillPath()
 }
 
+// Minimal, dark: near-black squircle, one thin light ring, one indigo dot.
+// The dot is the engram (the memory trace); the ring is the app's progress ring.
 func drawIcon(px: Int) -> CGImage {
     let s = CGFloat(px)
     let ctx = CGContext(
@@ -44,66 +46,38 @@ func drawIcon(px: Int) -> CGImage {
         roundedRect: plate, cornerWidth: plateRadius, cornerHeight: plateRadius, transform: nil
     ))
     ctx.clip()
+    // Barely-there vertical gradient so the black reads as a surface, not a hole.
     let gradient = CGGradient(
         colorsSpace: CGColorSpace(name: CGColorSpace.sRGB)!,
-        colors: [color(0x6D6AF0), color(0x3B3899)] as CFArray,
+        colors: [color(0x1A1A1F), color(0x0C0C0F)] as CFArray,
         locations: [0, 1]
     )!
     ctx.drawLinearGradient(
         gradient,
-        start: CGPoint(x: plate.minX, y: plate.maxY),
-        end: CGPoint(x: plate.maxX, y: plate.minY),
+        start: CGPoint(x: plate.midX, y: plate.maxY),
+        end: CGPoint(x: plate.midX, y: plate.minY),
         options: []
     )
     ctx.restoreGState()
 
-    // Back card: tilted, dimmed.
-    let cardW = plate.width * 0.58
-    let cardH = plate.height * 0.42
-    let cardRadius = cardW * 0.10
-    ctx.saveGState()
-    ctx.translateBy(x: plate.midX - cardW * 0.06, y: plate.midY + cardH * 0.16)
-    ctx.rotate(by: 7 * .pi / 180)
-    roundedRect(
-        ctx, CGRect(x: -cardW / 2, y: -cardH / 2, width: cardW, height: cardH),
-        radius: cardRadius, fill: color(0xFFFFFF, alpha: 0.45)
-    )
-    ctx.restoreGState()
+    let center = CGPoint(x: plate.midX, y: plate.midY)
 
-    // Front card: white, with two "text" bars.
-    let front = CGRect(
-        x: plate.midX - cardW / 2 - cardW * 0.05,
-        y: plate.midY - cardH * 0.62,
-        width: cardW, height: cardH
-    )
-    roundedRect(ctx, front, radius: cardRadius, fill: color(0xFFFFFF))
-    let barH = cardH * 0.11
-    roundedRect(
-        ctx,
-        CGRect(x: front.minX + cardW * 0.12, y: front.midY + barH * 0.8, width: cardW * 0.56, height: barH),
-        radius: barH / 2, fill: color(0x3B3899, alpha: 0.85)
-    )
-    roundedRect(
-        ctx,
-        CGRect(x: front.minX + cardW * 0.12, y: front.midY - barH * 1.6, width: cardW * 0.40, height: barH),
-        radius: barH / 2, fill: color(0x6D6AF0, alpha: 0.55)
-    )
-
-    // Timer ring, bottom-right: a bright arc at 3/4 progress — the focus half of the app.
-    let ringCenter = CGPoint(x: plate.maxX - plate.width * 0.235, y: plate.minY + plate.height * 0.245)
-    let ringRadius = plate.width * 0.115
-    let ringWidth = ringRadius * 0.42
-    ctx.setLineWidth(ringWidth)
-    ctx.setLineCap(.round)
-    ctx.setStrokeColor(color(0xFFFFFF, alpha: 0.30))
-    ctx.addArc(center: ringCenter, radius: ringRadius, startAngle: 0, endAngle: 2 * .pi, clockwise: false)
-    ctx.strokePath()
-    ctx.setStrokeColor(color(0xFFB340))
+    // Thin light ring.
+    ctx.setLineWidth(max(1, plate.width * 0.030))
+    ctx.setStrokeColor(color(0xECECF1, alpha: 0.92))
     ctx.addArc(
-        center: ringCenter, radius: ringRadius,
-        startAngle: .pi / 2, endAngle: .pi / 2 - 1.5 * .pi, clockwise: true
+        center: center, radius: plate.width * 0.26,
+        startAngle: 0, endAngle: 2 * .pi, clockwise: false
     )
     ctx.strokePath()
+
+    // Indigo dot, dead center.
+    ctx.setFillColor(color(0x847DFF))
+    ctx.addArc(
+        center: center, radius: plate.width * 0.095,
+        startAngle: 0, endAngle: 2 * .pi, clockwise: false
+    )
+    ctx.fillPath()
 
     return ctx.makeImage()!
 }
