@@ -22,6 +22,7 @@ actor InMemoryStore {
     func setNote(_ note: Note) { notes[note.id] = note }
     func setCard(_ card: Card) { cards[card.id] = card }
     func appendLog(_ log: ReviewLog) { logs.append(log) }
+    func removeLog(id: UUID) { logs.removeAll { $0.id == id } }
     func removeCards(ids: [UUID]) { for id in ids { cards[id] = nil } }
     func removeNote(id: UUID) { notes[id] = nil }
     func removeDeck(id: UUID) { decks[id] = nil }
@@ -85,4 +86,5 @@ struct InMemoryReviewLogRepository: ReviewLogRepository {
     func logs(from: Date, to: Date) async throws -> [ReviewLog] {
         await store.logs.filter { $0.reviewedAt >= from && $0.reviewedAt <= to }
     }
+    func delete(id: UUID) async throws { await store.removeLog(id: id) }
 }

@@ -44,7 +44,8 @@ final class AppDependencies {
         deckService = DeckService(
             deckRepository: deckRepository,
             cardRepository: cardRepository,
-            noteRepository: noteRepository
+            noteRepository: noteRepository,
+            noteTypeRepository: noteTypeRepository
         )
         statsService = StatsService(
             reviewLogRepository: reviewLogRepository,

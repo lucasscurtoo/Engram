@@ -113,14 +113,14 @@ struct StudyCardView: View {
         .textSelection(.enabled)
     }
 
-    /// Defensive: a note type edited after its cards were generated could leave
-    /// `templateIndex` dangling, and `frontFields` would trap on it.
+    /// `sideFields` handles every note type (basic templates, cloze markers,
+    /// parametric substitution via the item's seed) and returns nil for a stale
+    /// `templateIndex` instead of trapping.
     private func fields(front: Bool) -> [NoteType.RenderableField] {
-        let index = item.card.templateIndex
-        guard item.noteType.templates.indices.contains(index) else { return [] }
-        return front
-            ? item.noteType.frontFields(of: item.note, templateIndex: index)
-            : item.noteType.backFields(of: item.note, templateIndex: index)
+        item.noteType.sideFields(
+            of: item.note, templateIndex: item.card.templateIndex,
+            front: front, seed: item.parametricSeed
+        ) ?? []
     }
 
     static func title(of rating: Rating) -> String {

@@ -13,15 +13,18 @@ public actor DeckService {
     private let deckRepository: any DeckRepository
     private let cardRepository: any CardRepository
     private let noteRepository: any NoteRepository
+    private let noteTypeRepository: any NoteTypeRepository
 
     public init(
         deckRepository: any DeckRepository,
         cardRepository: any CardRepository,
-        noteRepository: any NoteRepository
+        noteRepository: any NoteRepository,
+        noteTypeRepository: any NoteTypeRepository
     ) {
         self.deckRepository = deckRepository
         self.cardRepository = cardRepository
         self.noteRepository = noteRepository
+        self.noteTypeRepository = noteTypeRepository
     }
 
     public func createDeck(
@@ -66,11 +69,28 @@ public actor DeckService {
         return note
     }
 
+    /// Saves the note and re-syncs its generated cards with the note type's current
+    /// template indices — a new `{{c3::…}}` grows a card, a removed marker deletes
+    /// its card (review logs survive as history). Existing cards keep their FSRS state.
     public func updateNote(_ note: Note, now: Date) async throws {
         var note = note
         note.modifiedAt = now
         try await noteRepository.save(note)
-        // TODO(owner): when editable NoteTypes arrive, re-sync generated cards here.
+
+        guard let noteType = try await noteTypeRepository.noteType(id: note.noteTypeID) else { return }
+        let needed = Set(noteType.templateIndices(for: note))
+        let existing = try await cardRepository.cards(matching: CardQuery(noteID: note.id))
+        let existingIndices = Set(existing.map(\.templateIndex))
+
+        let stale = existing.filter { !needed.contains($0.templateIndex) }.map(\.id)
+        if !stale.isEmpty {
+            try await cardRepository.delete(ids: stale)
+        }
+        for index in needed.subtracting(existingIndices).sorted() {
+            try await cardRepository.save(
+                Card(noteID: note.id, templateIndex: index, deckID: note.deckID, createdAt: now)
+            )
+        }
     }
 
     /// Sidebar data: every deck with rolled-up card/due counts (subdecks included).

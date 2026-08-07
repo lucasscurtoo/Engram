@@ -27,7 +27,10 @@ struct EngramMCPServer {
         deckRepository = decks
         noteRepository = notes
         noteTypeRepository = SwiftDataNoteTypeRepository(modelContainer: container)
-        deckService = DeckService(deckRepository: decks, cardRepository: cards, noteRepository: notes)
+        deckService = DeckService(
+            deckRepository: decks, cardRepository: cards, noteRepository: notes,
+            noteTypeRepository: SwiftDataNoteTypeRepository(modelContainer: container)
+        )
         statsService = StatsService(
             reviewLogRepository: SwiftDataReviewLogRepository(modelContainer: container),
             cardRepository: cards,

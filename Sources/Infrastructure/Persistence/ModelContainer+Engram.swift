@@ -51,17 +51,20 @@ extension ModelContainer {
         return container
     }
 
-    /// Idempotent: `NoteType.basic` has a fixed UUID, so reopening an existing store
-    /// finds it and does nothing.
+    /// Idempotent: built-in note types have fixed UUIDs, so reopening an existing
+    /// store finds them and does nothing. New built-ins seed on next launch.
     private static func seedBuiltInNoteTypes(in container: ModelContainer) throws {
         let context = ModelContext(container)
-        let basic = NoteType.basic
-        let basicID = basic.id
-        var descriptor = FetchDescriptor<SDNoteType>(predicate: #Predicate { $0.id == basicID })
-        descriptor.fetchLimit = 1
-        guard try context.fetch(descriptor).isEmpty else { return }
-        context.insert(try SDNoteType(basic))
-        try context.save()
+        var inserted = false
+        for noteType in NoteType.builtIns {
+            let typeID = noteType.id
+            var descriptor = FetchDescriptor<SDNoteType>(predicate: #Predicate { $0.id == typeID })
+            descriptor.fetchLimit = 1
+            guard try context.fetch(descriptor).isEmpty else { continue }
+            context.insert(try SDNoteType(noteType))
+            inserted = true
+        }
+        if inserted { try context.save() }
     }
 
     private static func defaultStoreDirectory() throws -> URL {

@@ -198,16 +198,16 @@ private func makeNote(deckID: UUID, front: String, tags: [String] = []) -> Note 
 
 // MARK: - Seeding
 
-@Test func basicNoteTypeSeedingIsIdempotent() async throws {
+@Test func builtInNoteTypeSeedingIsIdempotent() async throws {
     let store = TempStore()
 
     do {
         let noteTypes = SwiftDataNoteTypeRepository(modelContainer: try store.open())
-        #expect(try await noteTypes.allNoteTypes() == [NoteType.basic])
+        #expect(Set(try await noteTypes.allNoteTypes()) == Set(NoteType.builtIns))
     }
 
     let noteTypes = SwiftDataNoteTypeRepository(modelContainer: try store.open())
-    #expect(try await noteTypes.allNoteTypes() == [NoteType.basic])
+    #expect(Set(try await noteTypes.allNoteTypes()) == Set(NoteType.builtIns))
 }
 
 @Test func noteQueryMatchesFieldValuesCaseInsensitively() async throws {

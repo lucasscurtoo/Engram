@@ -10,6 +10,11 @@ public actor SwiftDataReviewLogRepository: ReviewLogRepository {
         try modelContext.save()
     }
 
+    public func delete(id: UUID) throws {
+        try modelContext.delete(model: SDReviewLog.self, where: #Predicate { $0.id == id })
+        try modelContext.save()
+    }
+
     public func logs(from: Date, to: Date) throws -> [ReviewLog] {
         let descriptor = FetchDescriptor<SDReviewLog>(
             predicate: #Predicate { $0.reviewedAt >= from && $0.reviewedAt <= to },

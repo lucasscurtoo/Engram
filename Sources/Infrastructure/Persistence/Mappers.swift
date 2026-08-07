@@ -51,7 +51,7 @@ extension SDDeck {
 extension SDNoteType {
     convenience init(_ noteType: NoteType) throws {
         self.init(
-            id: noteType.id, name: noteType.name,
+            id: noteType.id, name: noteType.name, kindRaw: noteType.kind.rawValue,
             fieldsData: try jsonEncoder.encode(noteType.fields),
             templatesData: try jsonEncoder.encode(noteType.templates)
         )
@@ -59,6 +59,7 @@ extension SDNoteType {
 
     func apply(_ noteType: NoteType) throws {
         name = noteType.name
+        kindRaw = noteType.kind.rawValue
         fieldsData = try jsonEncoder.encode(noteType.fields)
         templatesData = try jsonEncoder.encode(noteType.templates)
     }
@@ -66,6 +67,7 @@ extension SDNoteType {
     func toDomain() throws -> NoteType {
         NoteType(
             id: id, name: name,
+            kind: NoteTypeKind(rawValue: kindRaw) ?? .basic,
             fields: try jsonDecoder.decode([FieldDef].self, from: fieldsData),
             templates: try jsonDecoder.decode([CardTemplate].self, from: templatesData)
         )
