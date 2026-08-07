@@ -16,7 +16,12 @@ targets:
     type: application
     platform: macOS
     sources:
-      - Sources/Presentation
+      - path: Sources/Presentation
+        excludes:
+          - Resources
+      # Folder reference: KaTeX ships verbatim so its CSS finds fonts/ at runtime.
+      - path: Sources/Presentation/Resources/KaTeX
+        type: folder
     dependencies:
       - package: EngramCore
         products:

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<!--
+  Static shell for LaTeXRenderer. It ships next to the vendored KaTeX so every
+  asset (CSS, JS, fonts) resolves relatively from a single loadFileURL read-access
+  root — no network, no generated HTML, no temp files.
+  Swift drives it through render(text, color, fontSize) and gets the laid-out
+  height back on the "height" message handler.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="katex.min.css" />
+    <script src="katex.min.js"></script>
+    <script src="contrib/auto-render.min.js"></script>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        overflow: hidden;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        text-align: center;
+        line-height: 1.35;
+        -webkit-user-select: none;
+        word-wrap: break-word;
+      }
+      /* Authors type line breaks; HTML would otherwise collapse them. Scoped to the
+         content div on purpose — on <body> it would also render this file's own
+         indentation as blank lines and push the content out of view. */
+      #content { white-space: pre-wrap; }
+      .katex { font-size: 1.1em; }
+    </style>
+  </head>
+  <body>
+    <div id="content"></div>
+    <script>
+      var content = document.getElementById("content");
+
+      function postHeight() {
+        window.webkit.messageHandlers.height.postMessage(content.scrollHeight);
+      }
+
+      function render(text, color, fontSize) {
+        document.body.style.color = color;
+        document.body.style.fontSize = fontSize + "px";
+        // textContent first: it escapes the raw field. Then the only markdown that
+        // reaches card content — bold, e.g. the cloze answer — becomes real markup.
+        content.textContent = text;
+        content.innerHTML = content.innerHTML.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+        renderMathInElement(content, {
+          delimiters: [
+            { left: "$$", right: "$$", display: true },
+            { left: "$", right: "$", display: false }
+          ],
+          throwOnError: false
+        });
+        postHeight();
+        // Web fonts land after the first layout; report the settled height too.
+        document.fonts.ready.then(postHeight);
+      }
+
+      // Width changes (window resize, zoom) reflow the math.
+      new ResizeObserver(postHeight).observe(content);
+    </script>
+  </body>
+</html>

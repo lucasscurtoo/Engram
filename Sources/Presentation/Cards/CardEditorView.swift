@@ -37,18 +37,25 @@ struct NoteFieldsEditor: View {
                         .padding(Theme.space2)
                         .frame(minHeight: 64)
                         .raised()
-                    let content = fields[def.name] ?? ""
+                    let content = preview(of: def)
                     if !content.isEmpty {
                         HStack(alignment: .top, spacing: Theme.space2) {
                             Text("Preview").sectionCaps()
                             FieldContentView(def: def, content: content)
                                 .font(.callout)
+                                .latexFontSize(NSFont.preferredFont(forTextStyle: .callout).pointSize)
                                 .foregroundStyle(Theme.textSecondary)
                                 .textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
+            }
+            if let hint = Self.hint(for: noteType.kind) {
+                Text(hint)
+                    .font(.caption)
+                    .foregroundStyle(Theme.textTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             VStack(alignment: .leading, spacing: Theme.space2) {
                 SectionCaps("Tags")
@@ -63,6 +70,34 @@ struct NoteFieldsEditor: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// What the syntax of this note kind buys the author, in one line.
+    private static func hint(for kind: NoteTypeKind) -> String? {
+        switch kind {
+        case .basic:
+            nil
+        case .cloze:
+            "Wrap answers in {{c1::answer}} or {{c1::answer::hint}} — each number becomes its own card."
+        case .parametric:
+            "Declare ranges like a = 2..12, b = 1..9 — use {a} and {= a*b} in the fields. "
+                + "Numbers change every review."
+        }
+    }
+
+    /// Parametric fields preview resolved: a fixed seed so the author sees a real
+    /// example instead of `{a}`. Every other kind previews its raw text (cloze
+    /// markers included — they are the thing being edited).
+    private func preview(of def: FieldDef) -> String {
+        let raw = fields[def.name] ?? ""
+        guard noteType.kind == .parametric, !raw.isEmpty else { return raw }
+        let note = Note(
+            noteTypeID: noteType.id, deckID: UUID(), fields: fields,
+            createdAt: .now, modifiedAt: .now
+        )
+        let sides = noteType.frontFields(of: note, templateIndex: 0, seed: 1)
+            + noteType.backFields(of: note, templateIndex: 0, seed: 1)
+        return sides.first { $0.def.name == def.name }?.content ?? raw
     }
 
     private func binding(for name: String) -> Binding<String> {

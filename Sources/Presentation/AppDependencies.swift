@@ -65,6 +65,16 @@ final class AppDependencies {
         )
     }
 
+    /// Same repositories, no scheduler and no logs: cram writes nothing.
+    func makeCramSession() -> CramSession {
+        CramSession(
+            deckRepository: deckRepository,
+            cardRepository: cardRepository,
+            noteRepository: noteRepository,
+            noteTypeRepository: noteTypeRepository
+        )
+    }
+
     /// Note types available to the editor. MVP seeds only "Basic", but nothing in the
     /// UI may assume that — falls back to the built-in type if the store is empty.
     /// A *failed* read is reported; an empty store is not an error.

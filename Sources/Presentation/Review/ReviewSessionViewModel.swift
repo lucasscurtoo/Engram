@@ -2,7 +2,8 @@ import Application
 import Domain
 import Foundation
 
-/// @Observable wrapper over one `ReviewSessionService` (the `StudySession` actor).
+/// @Observable wrapper over one `StudySession` actor — review or cram, the protocol
+/// covers everything this model calls.
 /// Owns nothing but presentation state — the queue, FSRS and persistence stay in the actor.
 @MainActor
 @Observable
@@ -14,14 +15,16 @@ final class ReviewSessionViewModel {
     /// Seconds between `start()` and the queue emptying (frozen once finished).
     private(set) var elapsed: TimeInterval = 0
     private(set) var errorMessage: String?
+    /// Grades this session can still take back. Reset by `start`, +1 per grade, -1 per undo.
+    private(set) var undoCount = 0
     var revealed = false
 
     private let scope: StudyScope
-    private let session: ReviewSessionService
+    private let session: any StudySession
     private var startedAt = Date.now
 
-    /// The session is created per instance — `ReviewSessionService` holds queue state.
-    init(scope: StudyScope, session: ReviewSessionService) {
+    /// The session is created per instance — the actor holds the queue state.
+    init(scope: StudyScope, session: any StudySession) {
         self.scope = scope
         self.session = session
     }
@@ -37,9 +40,12 @@ final class ReviewSessionViewModel {
 
     var elapsedMinutes: Int { max(0, Int((elapsed / 60).rounded())) }
 
+    var canUndo: Bool { undoCount > 0 }
+
     func start() async {
         guard isLoading else { return } // `.task` can re-fire; the queue is built once.
         startedAt = .now
+        undoCount = 0
         do {
             try await session.start(scope: scope, now: startedAt)
         } catch {
@@ -53,14 +59,32 @@ final class ReviewSessionViewModel {
         guard item != nil else { return }
         do {
             try await session.grade(rating, now: .now)
+            undoCount += 1
         } catch {
             errorMessage = error.localizedDescription
         }
         await refresh()
     }
 
+    /// Puts the last graded card back, answer showing: the user was looking at the
+    /// side they just graded and expects to land exactly there.
+    func undo() async {
+        do {
+            guard try await session.undoLast() else { return }
+            undoCount = max(0, undoCount - 1)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        await refresh()
+        revealed = true
+    }
+
+    /// Empty in modes without scheduling (cram) — the rating buttons drop the caption.
+    var showsIntervals: Bool { !intervals.isEmpty }
+
     func intervalLabel(for rating: Rating) -> String {
-        intervals[rating].map(Self.intervalLabel) ?? "—"
+        guard showsIntervals else { return "" }
+        return intervals[rating].map(Self.intervalLabel) ?? "—"
     }
 
     /// Compact interval label, used only on the four rating buttons.

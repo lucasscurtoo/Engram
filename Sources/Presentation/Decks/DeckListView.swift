@@ -75,7 +75,7 @@ struct DeckListView: View {
         .background(Theme.bg0)
         .toolbar {
             Button {
-                launcher.scope = .all
+                launcher.study(.all)
             } label: {
                 Label("Study All", systemImage: "play.fill")
             }

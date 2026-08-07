@@ -67,7 +67,7 @@ struct CardListView: View {
             FilterField(prompt: "Search notes", text: $searchText)
             FilterField(prompt: "Tag", text: $tagFilter).frame(width: 140)
             Button {
-                launcher.scope = .tag(tagFilter)
+                launcher.study(.tag(tagFilter))
             } label: {
                 Label("Study Tag", systemImage: "play")
             }

@@ -41,9 +41,14 @@ struct DeckDetailView: View {
                     .foregroundStyle(Theme.textSecondary)
             }
             Spacer(minLength: Theme.space4)
+            // Secondary on purpose: practice is the exception, Study is the habit.
+            Button("Cram") { launcher.study(.deck(summary.deck.id), mode: .cram) }
+                .buttonStyle(.quiet)
+                .help("Practice every card without affecting the schedule")
+                .accessibilityLabel("Practice this deck")
             // The one strong element on this screen.
             Button {
-                launcher.scope = .deck(summary.deck.id)
+                launcher.study(.deck(summary.deck.id))
             } label: {
                 HStack(spacing: Theme.space2) {
                     Image(systemName: "play.fill").font(.caption)

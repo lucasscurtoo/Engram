@@ -124,8 +124,8 @@ struct ContentView: View {
         }
         .environment(launcher)
         // Dedicated review screen: a sheet covers the sidebar without a second window.
-        .sheet(item: $launcher.scope, onDismiss: { Task { await decks.load() } }) { scope in
-            ReviewSessionView(scope: scope, dependencies: dependencies)
+        .sheet(item: $launcher.request, onDismiss: { Task { await decks.load() } }) { request in
+            ReviewSessionView(request: request, dependencies: dependencies)
         }
         .onChange(of: dependencies.focus.isRunning) { _, isRunning in
             columns = isRunning ? .detailOnly : .automatic

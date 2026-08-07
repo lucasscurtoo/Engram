@@ -1,17 +1,31 @@
 import Domain
 import SwiftUI
 
-/// Set from anywhere in the view tree to open the review session; `ContentView`
+/// How to study a scope. Seam 3 in the UI: one screen, one view model, two actors.
+enum StudyMode: Hashable {
+    /// FSRS-scheduled review of what is due.
+    case review
+    /// Shuffled practice over everything in scope; nothing is written.
+    case cram
+}
+
+/// Set from anywhere in the view tree to open the study session; `ContentView`
 /// owns the sheet. Avoids threading a callback through every entry point.
 @MainActor
 @Observable
 final class StudyLauncher {
-    var scope: StudyScope?
-}
+    /// ponytail: `.sheet(item:)` needs Identifiable and the pair is already Hashable.
+    struct Request: Identifiable, Hashable {
+        let scope: StudyScope
+        var mode: StudyMode = .review
+        var id: Self { self }
+    }
 
-// ponytail: `.sheet(item:)` needs Identifiable and the scope is already Hashable.
-extension StudyScope: @retroactive Identifiable {
-    public var id: Self { self }
+    var request: Request?
+
+    func study(_ scope: StudyScope, mode: StudyMode = .review) {
+        request = Request(scope: scope, mode: mode)
+    }
 }
 
 /// The review flow: the study card (`StudyCardView`, shared with focus mode) plus
@@ -20,14 +34,18 @@ extension StudyScope: @retroactive Identifiable {
 /// Airy screen: edge-to-edge bg0 with one floating panel. Grading is keyboard-driven
 /// and constant, so card-to-card is a 120 ms crossfade and nothing more.
 struct ReviewSessionView: View {
+    private let mode: StudyMode
     @State private var model: ReviewSessionViewModel
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(scope: StudyScope, dependencies: AppDependencies) {
-        _model = State(initialValue: ReviewSessionViewModel(
-            scope: scope, session: dependencies.makeReviewSession()
-        ))
+    init(request: StudyLauncher.Request, dependencies: AppDependencies) {
+        mode = request.mode
+        let session: any StudySession = switch request.mode {
+        case .review: dependencies.makeReviewSession()
+        case .cram: dependencies.makeCramSession()
+        }
+        _model = State(initialValue: ReviewSessionViewModel(scope: request.scope, session: session))
     }
 
     var body: some View {
@@ -54,6 +72,11 @@ struct ReviewSessionView: View {
 
     private var header: some View {
         HStack {
+            if mode == .cram {
+                // Quiet, but never absent: FSRS is off and the user must know it.
+                Text("Practice").sectionCaps()
+                    .help("Nothing here changes the schedule")
+            }
             if let message = model.errorMessage {
                 Label(message, systemImage: "exclamationmark.triangle")
                     .font(.callout)
@@ -65,6 +88,15 @@ struct ReviewSessionView: View {
                 Text("\(model.progress.remaining) remaining")
                     .font(Theme.mono(.subheadline))
                     .foregroundStyle(Theme.textSecondary)
+            }
+            // Present only when there is something to take back — which is also what
+            // scopes ⌘Z to the states where it means anything.
+            if model.canUndo {
+                Button("Undo") { Task { await model.undo() } }
+                    .buttonStyle(.quiet)
+                    .keyboardShortcut("z", modifiers: [.command])
+                    .help("Undo the last rating (⌘Z)")
+                    .accessibilityLabel("Undo last rating")
             }
             Button("Close") { dismiss() }
                 .buttonStyle(.quiet)
@@ -108,7 +140,10 @@ struct ReviewSessionView: View {
     private var summary: some View {
         spread {
             ContentUnavailableView {
-                Label("Session complete", systemImage: "checkmark.seal")
+                Label(
+                    mode == .cram ? "Practice complete" : "Session complete",
+                    systemImage: "checkmark.seal"
+                )
             } description: {
                 HStack(spacing: Theme.space3) {
                     StatTile(title: "Reviewed", value: "\(model.progress.completed)")

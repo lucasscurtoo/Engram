@@ -106,6 +106,7 @@ struct StudyCardView: View {
             }
         }
         .font(.title2.weight(.medium))
+        .latexFontSize(NSFont.preferredFont(forTextStyle: .title2).pointSize)
         .foregroundStyle(Theme.textPrimary)
         .lineSpacing(Theme.space1)
         .multilineTextAlignment(.center)
@@ -151,9 +152,12 @@ private struct RatingButton: View {
                 Text(StudyCardView.title(of: rating))
                     .font(.callout.weight(.medium))
                     .foregroundStyle(tint)
-                Text(interval)
-                    .font(Theme.mono(.callout))
-                    .foregroundStyle(Theme.textSecondary)
+                // Empty in modes without scheduling (cram): no caption at all.
+                if !interval.isEmpty {
+                    Text(interval)
+                        .font(Theme.mono(.callout))
+                        .foregroundStyle(Theme.textSecondary)
+                }
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, Theme.space3)
@@ -170,7 +174,9 @@ private struct RatingButton: View {
         .keyboardShortcut(KeyEquivalent(Character("\(rating.rawValue)")), modifiers: [])
         .help("Press \(rating.rawValue)")
         .accessibilityLabel(
-            "\(StudyCardView.title(of: rating)), next in \(interval)"
+            interval.isEmpty
+                ? StudyCardView.title(of: rating)
+                : "\(StudyCardView.title(of: rating)), next in \(interval)"
         )
     }
 }

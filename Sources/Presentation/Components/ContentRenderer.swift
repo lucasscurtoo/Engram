@@ -27,8 +27,18 @@ struct FieldContentView: View {
     var body: some View {
         switch def.contentType {
         case .markdown:
-            MarkdownRenderer().render(content)
-        // TODO(owner): plug LaTeXRenderer here ($...$ / $$...$$ via KaTeX in WKWebView).
+            // The seam the architecture reserved: math goes to KaTeX, everything
+            // else stays on the zero-dependency markdown path.
+            if Self.containsMath(content) {
+                LaTeXRenderer(content: content)
+            } else {
+                MarkdownRenderer().render(content)
+            }
         }
+    }
+
+    /// True when the field carries at least one `$…$` / `$$…$$` segment.
+    static func containsMath(_ content: String) -> Bool {
+        content.contains(/\$\$?[^$]+\$\$?/)
     }
 }
