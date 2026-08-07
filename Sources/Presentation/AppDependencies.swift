@@ -17,6 +17,13 @@ final class AppDependencies {
     let noteTypeRepository: SwiftDataNoteTypeRepository
     let reviewLogRepository: SwiftDataReviewLogRepository
     let deckService: DeckService
+    /// M5: the only distraction blocker in the app. Nothing but the focus engine
+    /// calls it — the UI never activates/deactivates it directly.
+    let focusBlocker = SystemFocusBlocker()
+
+    /// One focus session for the whole app: the main window and the menu bar scene
+    /// observe this instance. Lazy so it is only built when focus is first used.
+    @ObservationIgnored private(set) lazy var focus = FocusSessionViewModel(dependencies: self)
 
     init() throws {
         let container = try ModelContainer.recall()

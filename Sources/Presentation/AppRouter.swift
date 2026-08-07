@@ -5,6 +5,5 @@ enum AppRoute: Hashable {
     case deck(UUID)
     /// Placeholder until M6.
     case stats
-    /// Placeholder until M5.
     case focus
 }

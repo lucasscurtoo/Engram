@@ -1,6 +1,42 @@
+import AppKit
 import SwiftUI
 
-/// TODO(owner): M5 — MenuBarExtra scene showing the running focus timer
-/// (always visible) with pause/stop controls. Attach from RecallApp.
-/// Pattern reference: ~/Proyectos/AgenticNotch (menu bar app) — patterns only,
-/// it is GPL-3 licensed, do NOT copy code into this MIT repo.
+/// Menu bar face of the focus session. Both this scene and the main window read the
+/// single `FocusSessionViewModel` held by `AppDependencies`, so the countdown and the
+/// controls can never drift apart.
+///
+/// Pattern reference: ~/Proyectos/AgenticNotch (GPL-3) — patterns only, no code.
+struct MenuBarTimerLabel: View {
+    let model: FocusSessionViewModel?
+
+    var body: some View {
+        if let model, model.isRunning {
+            Label(model.timerText, systemImage: model.phaseSymbol)
+        } else {
+            Image(systemName: "timer")
+        }
+    }
+}
+
+/// The dropdown: session state on top, then pause/resume + stop.
+struct MenuBarTimerMenu: View {
+    let model: FocusSessionViewModel?
+
+    var body: some View {
+        if let model, model.isRunning {
+            Text("\(model.phaseTitle) · \(model.timerText)")
+            if let detail = model.goalDetail { Text(detail) }
+            Divider()
+            if model.isPaused {
+                Button("Resume") { Task { await model.resume() } }
+            } else {
+                Button("Pause") { Task { await model.pause() } }
+            }
+            Button("Stop") { Task { await model.stop() } }
+        } else {
+            Text("No focus session")
+        }
+        Divider()
+        Button("Quit \(AppInfo.name)") { NSApp.terminate(nil) }
+    }
+}

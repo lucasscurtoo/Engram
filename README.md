@@ -55,6 +55,34 @@ one variant of each, the code depends only on the abstraction):
 6. **Per-deck FSRS config** — `DeckConfig` on every deck.
 7. **DistractionBlocker** — MVP triggers macOS DND; system-wide blocking is a future implementation.
 
+## Focus & Do Not Disturb
+
+Focus mode (Pomodoro or deep work, optional goal, optional deck/tag to study
+inside the block) lives in the sidebar's **Focus** entry, with a live timer in
+the menu bar. Everything below is optional — the session works without any of it.
+
+macOS exposes no public API to toggle a Focus filter, so Recall drives two
+**Shortcuts you create yourself** (Shortcuts.app → new shortcut → *Set Focus*):
+
+| Shortcut name | What it should do |
+| --- | --- |
+| `Recall Focus On` | Turn Do Not Disturb (or your own Focus) **on** |
+| `Recall Focus Off` | Turn it **off** |
+
+Name them exactly like that. Recall runs them via `/usr/bin/shortcuts` when a
+focus block starts and ends. Only the focus engine calls this — the UI never
+toggles it directly (seam 7, `DistractionBlocker`).
+
+It degrades gracefully at every step: shortcuts missing, `shortcuts` CLI
+unavailable, permission denied or a shortcut that hangs (it is killed after a
+few seconds) are all swallowed silently. You lose the Do Not Disturb switch,
+never the session.
+
+Same for the rest: notifications (block ends, break reminders, goal reached) are
+skipped if permission is denied, and ambient sound is disabled in the UI until
+`ambience-rain` / `ambience-whiteNoise` / `ambience-cafe` loops are bundled in
+the app target.
+
 ## Status (milestones)
 
 - [x] **M0** — scaffold: XcodeGen project, SPM core, app opens a window

@@ -15,6 +15,11 @@ struct RecallApp: App {
         dependencies = Result { try AppDependencies() }
     }
 
+    /// nil only when the store failed to open (the app shows `StartupErrorView`).
+    @MainActor private var focus: FocusSessionViewModel? {
+        if case .success(let dependencies) = dependencies { dependencies.focus } else { nil }
+    }
+
     var body: some Scene {
         WindowGroup(AppInfo.name) {
             switch dependencies {
@@ -41,7 +46,12 @@ struct RecallApp: App {
         .windowResizability(.contentSize)
         .defaultSize(width: 460, height: 520)
 
-        // TODO(owner): M5 — MenuBarExtra focus timer (MenuBarTimer.swift).
+        // Always-visible focus timer; live countdown while a session runs.
+        MenuBarExtra {
+            MenuBarTimerMenu(model: focus)
+        } label: {
+            MenuBarTimerLabel(model: focus)
+        }
     }
 }
 
@@ -62,6 +72,8 @@ struct ContentView: View {
     @State private var decks: DeckListViewModel
     @State private var selection: AppRoute?
     @State private var launcher = StudyLauncher()
+    /// Collapsed while a focus session runs — the running screen owns the window.
+    @State private var columns = NavigationSplitViewVisibility.automatic
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -69,7 +81,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columns) {
             DeckListView(model: decks, selection: $selection)
         } detail: {
             switch selection {
@@ -85,7 +97,7 @@ struct ContentView: View {
             case .stats:
                 StatsView()
             case .focus:
-                FocusSessionView()
+                FocusSessionView(model: dependencies.focus, decks: decks.decks)
             case nil:
                 ContentUnavailableView(
                     "Select a deck to get started", systemImage: "rectangle.stack"
@@ -96,6 +108,9 @@ struct ContentView: View {
         // Dedicated review screen: a sheet covers the sidebar without a second window.
         .sheet(item: $launcher.scope, onDismiss: { Task { await decks.load() } }) { scope in
             ReviewSessionView(scope: scope, dependencies: dependencies)
+        }
+        .onChange(of: dependencies.focus.isRunning) { _, isRunning in
+            columns = isRunning ? .detailOnly : .automatic
         }
         .task { await decks.load() }
     }
