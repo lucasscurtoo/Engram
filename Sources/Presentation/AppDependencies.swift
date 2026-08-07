@@ -16,6 +16,7 @@ final class AppDependencies {
     let noteRepository: SwiftDataNoteRepository
     let noteTypeRepository: SwiftDataNoteTypeRepository
     let reviewLogRepository: SwiftDataReviewLogRepository
+    let focusLogRepository: SwiftDataFocusSessionLogRepository
     let deckService: DeckService
     /// M5: the only distraction blocker in the app. Nothing but the focus engine
     /// calls it — the UI never activates/deactivates it directly.
@@ -33,6 +34,7 @@ final class AppDependencies {
         noteRepository = SwiftDataNoteRepository(modelContainer: container)
         noteTypeRepository = SwiftDataNoteTypeRepository(modelContainer: container)
         reviewLogRepository = SwiftDataReviewLogRepository(modelContainer: container)
+        focusLogRepository = SwiftDataFocusSessionLogRepository(modelContainer: container)
         deckService = DeckService(
             deckRepository: deckRepository,
             cardRepository: cardRepository,

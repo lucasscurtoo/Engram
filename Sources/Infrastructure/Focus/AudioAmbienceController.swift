@@ -1,18 +1,29 @@
+import Application
 import AVFoundation
 import Foundation
+
+extension AmbienceTrack {
+    /// Bundled loop asset name for this track.
+    public var assetName: String { "ambience-\(rawValue)" }
+}
 
 /// Looping ambient sound for focus blocks, backed by `AVAudioPlayer` over assets
 /// bundled as `ambience-rain` / `ambience-whiteNoise` / `ambience-cafe` (m4a or mp3).
 ///
 /// No asset ships with the MVP: an unknown asset name is a silent no-op, and
-/// `isAvailable(_:)` lets the UI disable the options it cannot play.
-///
-/// ponytail: keyed by asset name (String) rather than `AmbienceTrack` because the
-/// Infrastructure target does not depend on Application — the mapping and the
-/// `AmbienceController` conformance live one layer up, in Presentation.
+/// `availableTracks()` lets the UI disable the options it cannot play.
 ///
 /// TODO(owner): add ambience assets (2-3 royalty-free loops, m4a, added to the app target).
-public actor AudioAmbienceController {
+public actor AudioAmbienceController: AmbienceController {
+    /// Tracks whose loop is actually bundled. The UI disables the rest.
+    public static func availableTracks() -> [AmbienceTrack] {
+        AmbienceTrack.allCases.filter { isAvailable($0.assetName) }
+    }
+
+    public func play(_ track: AmbienceTrack, volume: Double) {
+        play(assetNamed: track.assetName, volume: volume)
+    }
+
     private static let fileExtensions = ["m4a", "mp3"]
 
     private var player: AVAudioPlayer?

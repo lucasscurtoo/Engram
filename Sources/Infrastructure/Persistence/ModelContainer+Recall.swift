@@ -8,7 +8,8 @@ public enum RecallSchemaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
     public static var models: [any PersistentModel.Type] {
-        [SDDeck.self, SDNoteType.self, SDNote.self, SDCard.self, SDReviewLog.self]
+        // SDFocusSessionLog joined v1 pre-release (additive = lightweight migration).
+        [SDDeck.self, SDNoteType.self, SDNote.self, SDCard.self, SDReviewLog.self, SDFocusSessionLog.self]
     }
 }
 

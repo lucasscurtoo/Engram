@@ -74,6 +74,8 @@ public struct FocusStatus: Sendable, Hashable {
 /// Wraps an optional study scope; study and focus share the same screen (UI's job).
 public actor FocusSessionService {
     private let blocker: any DistractionBlocker
+    /// When present, every finished session is appended here for stats (best-effort).
+    private let logRepository: (any FocusSessionLogRepository)?
 
     public private(set) var mode: FocusMode?
     public private(set) var goal: FocusGoal?
@@ -93,9 +95,14 @@ public actor FocusSessionService {
     private var pausedRemaining: TimeInterval?
     /// Deep work only.
     private var nextReminderAt: Date?
+    private var sessionStartedAt: Date?
 
-    public init(blocker: any DistractionBlocker) {
+    public init(
+        blocker: any DistractionBlocker,
+        logRepository: (any FocusSessionLogRepository)? = nil
+    ) {
         self.blocker = blocker
+        self.logRepository = logRepository
     }
 
     // MARK: - Lifecycle
@@ -112,6 +119,7 @@ public actor FocusSessionService {
         goalFired = false
         pausedPhase = nil
         pausedRemaining = nil
+        sessionStartedAt = now
         await enter(.focusing, now: now)
         return [.phaseStarted(.focusing)]
     }
@@ -183,8 +191,16 @@ public actor FocusSessionService {
         pausedPhase = nil
         pausedRemaining = nil
         nextReminderAt = nil
-        // TODO(owner): M5/M6 — persist a FocusSessionLog here (focusedSeconds, blocks,
-        // cards) once the log entity + repository exist, so stats have a source of truth.
+        if let startedAt = sessionStartedAt, focusedAccumulated > 0 {
+            // Best-effort: losing a stats row must never break session teardown.
+            try? await logRepository?.append(FocusSessionLog(
+                startedAt: startedAt, endedAt: now,
+                focusedSeconds: focusedAccumulated,
+                completedFocusBlocks: completedFocusBlocks,
+                cardsCompleted: cardsCompleted
+            ))
+        }
+        sessionStartedAt = nil
     }
 
     /// UI reports each card graded while focusing, for `.cards` goals and stats.

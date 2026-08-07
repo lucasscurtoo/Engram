@@ -3,25 +3,7 @@ import Domain
 import Foundation
 import Infrastructure
 
-// ponytail: the Infrastructure target depends on Domain only (Package.swift is fixed),
-// so the concrete controllers are plain actors there and pick up their Application
-// protocols here — Presentation is the first module that sees both.
-extension SystemFocusBlocker: @retroactive DistractionBlocker {}
-
-extension AudioAmbienceController: @retroactive AmbienceController {
-    public func play(_ track: AmbienceTrack, volume: Double) async {
-        play(assetNamed: track.assetName, volume: volume)
-    }
-
-    /// Tracks whose loop is actually bundled. The UI disables the rest.
-    public static func availableTracks() -> [AmbienceTrack] {
-        AmbienceTrack.allCases.filter { isAvailable($0.assetName) }
-    }
-}
-
 extension AmbienceTrack {
-    var assetName: String { "ambience-\(rawValue)" }
-
     var label: String {
         switch self {
         case .rain: "Rain"
@@ -114,7 +96,10 @@ final class FocusSessionViewModel {
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        session = FocusSessionService(blocker: dependencies.focusBlocker)
+        session = FocusSessionService(
+            blocker: dependencies.focusBlocker,
+            logRepository: dependencies.focusLogRepository
+        )
     }
 
     // MARK: - Derived

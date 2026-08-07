@@ -134,6 +134,32 @@ struct FocusSessionServiceTests {
         #expect(await blocker.calls == ["on", "off", "on", "off"])
     }
 
+    @Test func stopPersistsAFocusSessionLog() async throws {
+        actor SpyLogRepository: FocusSessionLogRepository {
+            private(set) var appended: [FocusSessionLog] = []
+            func append(_ log: FocusSessionLog) { appended.append(log) }
+            func logs(from: Date, to: Date) -> [FocusSessionLog] { appended }
+        }
+        let logs = SpyLogRepository()
+        let service = FocusSessionService(blocker: SpyBlocker(), logRepository: logs)
+        _ = await service.start(mode: pomodoro, goal: nil, studyScope: nil, now: start)
+        _ = await service.recordCardCompleted(now: start)
+        await service.stop(now: start.addingTimeInterval(12 * 60))
+
+        let appended = await logs.appended
+        let log = try #require(appended.first)
+        #expect(appended.count == 1)
+        #expect(log.startedAt == start)
+        #expect(log.focusedSeconds == 12 * 60)
+        #expect(log.cardsCompleted == 1)
+
+        // A session with zero focused time leaves no row.
+        _ = await service.start(mode: pomodoro, goal: nil, studyScope: nil, now: start)
+        await service.pause(now: start)
+        await service.stop(now: start)
+        #expect(await logs.appended.count == 1)
+    }
+
     @Test func stopAccumulatesPartialFocusTime() async {
         let (service, _) = makeService()
         _ = await service.start(mode: pomodoro, goal: nil, studyScope: nil, now: start)

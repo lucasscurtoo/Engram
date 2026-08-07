@@ -1,3 +1,4 @@
+import Application
 import Foundation
 
 /// MVP Do Not Disturb hook. macOS ships no public API to toggle a Focus filter, so
@@ -9,7 +10,7 @@ import Foundation
 /// session, so nothing is awaited and every failure is swallowed.
 ///
 /// TODO(owner): SystemWideBlocker via Family Controls / Network Extension (entitlements) post-MVP.
-public actor SystemFocusBlocker {
+public actor SystemFocusBlocker: DistractionBlocker {
     public static let onShortcutName = "Recall Focus On"
     public static let offShortcutName = "Recall Focus Off"
 
