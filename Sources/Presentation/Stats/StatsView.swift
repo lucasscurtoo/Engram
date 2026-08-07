@@ -4,7 +4,11 @@ import Domain
 import SwiftUI
 
 /// Stats dashboard: everything comes from `StatsService.Overview`, nothing is
-/// recomputed here. Default chart styling only, so light/dark follow the system.
+/// recomputed here.
+///
+/// Dense screen: a 3-across tile row over hairlined chart panels. Every number is
+/// monospaced, every gridline is a hairline, and the donut borrows the rating
+/// palette so a "learning" slice is the same amber as the Hard button.
 struct StatsView: View {
     @Environment(AppDependencies.self) private var dependencies
     @State private var model: StatsViewModel?
@@ -17,6 +21,8 @@ struct StatsView: View {
                 ProgressView()
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.bg0)
         .task {
             let model = model ?? StatsViewModel(statsService: dependencies.statsService)
             self.model = model
@@ -59,8 +65,8 @@ private struct OverviewCharts: View {
     let overview: StatsService.Overview
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.space6) {
-            HStack(spacing: Theme.space4) {
+        VStack(alignment: .leading, spacing: Theme.space4) {
+            HStack(spacing: Theme.space3) {
                 StatTile(title: "Retention", value: Self.percent(overview.retention))
                 StatTile(title: "Due today", value: "\(overview.dueToday)")
                 StatTile(title: "Due next 7 days", value: "\(overview.dueNextSevenDays)")
@@ -74,6 +80,7 @@ private struct OverviewCharts: View {
                     )
                     .foregroundStyle(Theme.accent.gradient)
                 }
+                .technicalAxes()
             }
 
             if !cardsByState.isEmpty {
@@ -86,6 +93,11 @@ private struct OverviewCharts: View {
                         )
                         .foregroundStyle(by: .value("State", entry.state.displayName))
                     }
+                    .chartForegroundStyleScale(
+                        domain: cardsByState.map(\.state.displayName),
+                        range: cardsByState.map { Theme.color(for: $0.state) }
+                    )
+                    .chartLegend(position: .trailing, alignment: .center)
                 }
             }
 
@@ -100,8 +112,9 @@ private struct OverviewCharts: View {
                     )
                     // Quieter than the review bars so the two charts read as a pair
                     // without competing.
-                    .foregroundStyle(Theme.accent.opacity(0.55).gradient)
+                    .foregroundStyle(Theme.accent.opacity(0.6).gradient)
                 }
+                .technicalAxes()
             }
         }
     }
@@ -121,6 +134,29 @@ private struct OverviewCharts: View {
     }
 }
 
+private extension View {
+    /// Hairline gridlines, monospaced tertiary labels, no tick marks: the chart body
+    /// should be the only thing with weight.
+    func technicalAxes() -> some View {
+        chartXAxis {
+            AxisMarks { _ in
+                AxisGridLine().foregroundStyle(Theme.hairline)
+                AxisValueLabel()
+                    .font(Theme.mono(.caption))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+        }
+        .chartYAxis {
+            AxisMarks { _ in
+                AxisGridLine().foregroundStyle(Theme.hairline)
+                AxisValueLabel()
+                    .font(Theme.mono(.caption))
+                    .foregroundStyle(Theme.textTertiary)
+            }
+        }
+    }
+}
+
 private struct ChartSection<Content: View>: View {
     let title: String
     let subtitle: String?
@@ -128,12 +164,17 @@ private struct ChartSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.space2) {
-            Text(title).font(.headline)
+            Text(title).sectionCaps()
             if let subtitle {
-                Text(subtitle).font(.caption).foregroundStyle(.secondary)
+                Text(subtitle)
+                    .font(Theme.mono(.subheadline))
+                    .foregroundStyle(Theme.textSecondary)
             }
-            content.frame(height: 200)
+            content.frame(height: 200).padding(.top, Theme.space1)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(Theme.space4)
+        .panel(radius: Theme.Radius.tile)
     }
 }
 

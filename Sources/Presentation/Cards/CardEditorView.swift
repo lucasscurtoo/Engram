@@ -17,32 +17,52 @@ enum Tags {
 /// One input per `FieldDef` of the note type — never a hardcoded front/back pair —
 /// with a live preview through `FieldContentView`, plus tag editing.
 /// Reused by `CardEditorView` and Quick Add.
+///
+/// Hand-built rather than a `Form`: grouped forms carry the stock macOS look this
+/// design replaces. Sections are mini-caps, inputs are raised.
 struct NoteFieldsEditor: View {
     let noteType: NoteType
     @Binding var fields: [String: String]
     @Binding var tagsText: String
 
     var body: some View {
-        ForEach(noteType.fields, id: \.name) { def in
-            Section(def.name.capitalized) {
-                TextEditor(text: binding(for: def.name))
-                    .font(.body)
-                    .frame(minHeight: 64)
-                let content = fields[def.name] ?? ""
-                if !content.isEmpty {
-                    LabeledContent("Preview") {
-                        FieldContentView(def: def, content: content)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+        VStack(alignment: .leading, spacing: Theme.space4) {
+            ForEach(noteType.fields, id: \.name) { def in
+                VStack(alignment: .leading, spacing: Theme.space2) {
+                    SectionCaps(def.name)
+                    TextEditor(text: binding(for: def.name))
+                        .font(.body)
+                        .foregroundStyle(Theme.textPrimary)
+                        .scrollContentBackground(.hidden)
+                        .padding(Theme.space2)
+                        .frame(minHeight: 64)
+                        .raised()
+                    let content = fields[def.name] ?? ""
+                    if !content.isEmpty {
+                        HStack(alignment: .top, spacing: Theme.space2) {
+                            Text("Preview").sectionCaps()
+                            FieldContentView(def: def, content: content)
+                                .font(.callout)
+                                .foregroundStyle(Theme.textSecondary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                 }
             }
-        }
-        Section("Tags") {
-            TextField("Comma separated", text: $tagsText)
+            VStack(alignment: .leading, spacing: Theme.space2) {
+                SectionCaps("Tags")
                 // TODO(owner): real token field with completion once tags get heavy use.
-                .textFieldStyle(.roundedBorder)
+                TextField("Comma separated", text: $tagsText)
+                    .textFieldStyle(.plain)
+                    .font(Theme.mono(.callout))
+                    .foregroundStyle(Theme.textPrimary)
+                    .padding(.horizontal, Theme.space2)
+                    .frame(minHeight: 26)
+                    .raised()
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func binding(for name: String) -> Binding<String> {
@@ -74,21 +94,28 @@ struct CardEditorView: View {
 
     var body: some View {
         SheetLayout(title: title, confirm: "Save", isConfirmEnabled: canSave) {
-            Form {
-                if noteTypes.count > 1, case .create = mode {
-                    Picker("Note type", selection: $selectedNoteTypeID) {
-                        ForEach(noteTypes, id: \.id) { type in
-                            Text(type.name).tag(UUID?.some(type.id))
+            ScrollView {
+                VStack(alignment: .leading, spacing: Theme.space4) {
+                    if noteTypes.count > 1, case .create = mode {
+                        VStack(alignment: .leading, spacing: Theme.space2) {
+                            SectionCaps("Note Type")
+                            Picker("Note type", selection: $selectedNoteTypeID) {
+                                ForEach(noteTypes, id: \.id) { type in
+                                    Text(type.name).tag(UUID?.some(type.id))
+                                }
+                            }
+                            .labelsHidden()
+                            .font(.callout)
                         }
                     }
+                    if let noteType {
+                        NoteFieldsEditor(noteType: noteType, fields: $fields, tagsText: $tagsText)
+                    } else {
+                        Text("Loading note type…").foregroundStyle(Theme.textTertiary)
+                    }
                 }
-                if let noteType {
-                    NoteFieldsEditor(noteType: noteType, fields: $fields, tagsText: $tagsText)
-                } else {
-                    Text("Loading note type…").foregroundStyle(.secondary)
-                }
+                .padding(Theme.space4)
             }
-            .formStyle(.grouped)
         } confirm: {
             save()
         }

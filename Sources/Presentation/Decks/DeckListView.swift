@@ -3,52 +3,76 @@ import Domain
 import SwiftUI
 
 /// Sidebar: hierarchical deck tree with rolled-up counts, plus the fixed
-/// Stats/Focus entries (placeholders until M5/M6).
+/// Stats/Focus entries.
+///
+/// Hand-rolled rather than `List(selection:)`: AppKit paints its own saturated
+/// selection fill over any row background we supply, and its outline indent eats a
+/// third of the column per level. Both are exactly the things this design has to
+/// control, so the tree is a `ScrollView` of recursive rows with a 12pt indent step
+/// and a 12% accent wash for selection. Rows stay 28pt with 1pt gaps — dense.
 struct DeckListView: View {
     let model: DeckListViewModel
     @Binding var selection: AppRoute?
 
     @State private var sheet: DeckSheet?
     @State private var deckPendingDeletion: Deck?
+    @State private var collapsed: Set<UUID> = []
 
     @Environment(StudyLauncher.self) private var launcher
 
     var body: some View {
-        List(selection: $selection) {
-            Section {
-                if model.tree.isEmpty {
-                    Text(model.isLoading ? "Loading…" : "No decks yet")
-                        .foregroundStyle(.secondary)
-                        .padding(.vertical, Theme.space1)
-                } else {
-                    OutlineGroup(model.tree, children: \.children) { node in
-                        DeckRow(summary: node.summary)
-                            .tag(AppRoute.deck(node.id))
-                            .contextMenu { menu(for: node.summary.deck) }
-                    }
+        // A selection-less `List`: it still handles the titlebar safe area and the
+        // sidebar's scroll chrome, but with no selection binding AppKit has nothing
+        // to paint over the rows.
+        List {
+            SectionCaps("Library")
+                .padding(.horizontal, Theme.space2)
+                .padding(.bottom, Theme.space1)
+                .sidebarRow()
+            if model.tree.isEmpty {
+                Text(model.isLoading ? "Loading…" : "No decks yet")
+                    .font(.callout)
+                    .foregroundStyle(Theme.textTertiary)
+                    .padding(.horizontal, Theme.space2)
+                    .frame(minHeight: Self.rowHeight, alignment: .leading)
+                    .sidebarRow()
+            } else {
+                ForEach(model.tree) { node in
+                    DeckBranch(
+                        node: node,
+                        depth: 0,
+                        selection: $selection,
+                        collapsed: $collapsed,
+                        menu: menu
+                    )
                 }
             }
-            Section {
-                SidebarRow(title: "Stats", symbol: "chart.bar.xaxis").tag(AppRoute.stats)
-                SidebarRow(title: "Focus", symbol: "timer").tag(AppRoute.focus)
+            Color.clear.frame(height: Theme.space4).sidebarRow()
+            SidebarRow(
+                title: "Stats", symbol: "chart.bar.xaxis", isSelected: selection == .stats
+            ) {
+                selection = .stats
             }
+            .sidebarRow()
+            SidebarRow(
+                title: "Focus", symbol: "timer", isSelected: selection == .focus
+            ) {
+                selection = .focus
+            }
+            .sidebarRow()
         }
+        .listStyle(.sidebar)
+        .environment(\.defaultMinListRowHeight, Self.rowHeight)
+        .scrollContentBackground(.hidden)
         .navigationTitle(AppInfo.name)
-        // Things' "+ New List": always reachable, never in the way.
+        .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 340)
+        // Always reachable, never in the way.
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            Button {
-                sheet = .add(parentID: nil)
-            } label: {
-                Label("New Deck", systemImage: "plus")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, Theme.space3)
-            .padding(.vertical, Theme.space2)
+            NewDeckButton { sheet = .add(parentID: nil) }
         }
+        // After the inset so the footer sits on the same floor, and over the
+        // sidebar's vibrancy so the layer stack stays readable.
+        .background(Theme.bg0)
         .toolbar {
             Button {
                 launcher.scope = .all
@@ -105,6 +129,11 @@ struct DeckListView: View {
         }
     }
 
+    /// Compact enough to read as a tool, tall enough to stay a comfortable hit target.
+    static let rowHeight: CGFloat = 28
+    /// One indent step. AppKit's own is more than twice this and swallows the column.
+    static let indentStep: CGFloat = 12
+
     @ViewBuilder
     private func menu(for deck: Deck) -> some View {
         Button("Rename…") { sheet = .rename(deck) }
@@ -112,6 +141,15 @@ struct DeckListView: View {
         Button("Configure…") { sheet = .configure(deck) }
         Divider()
         Button("Delete…", role: .destructive) { deckPendingDeletion = deck }
+    }
+}
+
+private extension View {
+    /// Strips every scrap of AppKit row chrome: no inset, no fill, no separator.
+    func sidebarRow() -> some View {
+        listRowInsets(EdgeInsets(top: 0, leading: Theme.space1, bottom: 0, trailing: Theme.space1))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 }
 
@@ -129,51 +167,178 @@ private enum DeckSheet: Identifiable {
     }
 }
 
+/// One deck plus, when expanded, its subtree. Collapse state is tracked by id so a
+/// reload of the tree never closes what the user opened.
+private struct DeckBranch<Menu: View>: View {
+    let node: DeckNode
+    let depth: Int
+    @Binding var selection: AppRoute?
+    @Binding var collapsed: Set<UUID>
+    @ViewBuilder let menu: (Deck) -> Menu
+
+    var body: some View {
+        DeckRow(
+            summary: node.summary,
+            depth: depth,
+            isSelected: selection == .deck(node.id),
+            disclosure: node.children == nil ? nil : !collapsed.contains(node.id),
+            toggleDisclosure: {
+                if collapsed.contains(node.id) {
+                    collapsed.remove(node.id)
+                } else {
+                    collapsed.insert(node.id)
+                }
+            },
+            select: { selection = .deck(node.id) }
+        )
+        .contextMenu { menu(node.summary.deck) }
+        .sidebarRow()
+        if let children = node.children, !collapsed.contains(node.id) {
+            ForEach(children) { child in
+                DeckBranch(
+                    node: child, depth: depth + 1, selection: $selection,
+                    collapsed: $collapsed, menu: menu
+                )
+            }
+        }
+    }
+}
+
+/// Selection is a 12% accent wash and nothing else — the label stays near-white so
+/// contrast never depends on the accent. Hover is one layer of grey.
+private struct SidebarRowBackground: View {
+    let isSelected: Bool
+    let isHovering: Bool
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: Theme.Radius.control)
+            .fill(isSelected ? Theme.accentWash : (isHovering ? Theme.bg3 : .clear))
+    }
+}
+
 /// Sidebar entry with the app's quiet icon treatment. Used by the fixed rows;
 /// `DeckRow` mirrors its metrics so every row in the list lines up.
 private struct SidebarRow: View {
     let title: String
     let symbol: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: Theme.space2) {
-            Image(systemName: symbol)
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-            Text(title)
+        Button(action: action) {
+            HStack(spacing: Theme.space2) {
+                Image(systemName: symbol)
+                    .font(.body)
+                    .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textTertiary)
+                    .frame(width: 16)
+                Text(title)
+                    .font(.callout)
+                    .foregroundStyle(Theme.textPrimary)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Theme.space2)
+            .frame(minHeight: DeckListView.rowHeight)
+            .background { SidebarRowBackground(isSelected: isSelected, isHovering: isHovering) }
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, Theme.space1)
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 }
 
 private struct DeckRow: View {
     let summary: DeckService.DeckSummary
+    let depth: Int
+    let isSelected: Bool
+    /// nil for leaves; true/false = expanded/collapsed.
+    let disclosure: Bool?
+    let toggleDisclosure: () -> Void
+    let select: () -> Void
+
+    @State private var isHovering = false
 
     var body: some View {
-        HStack(spacing: Theme.space2) {
-            Image(systemName: "rectangle.stack")
-                .foregroundStyle(.secondary)
-                .frame(width: 18)
-            Text(summary.deck.name)
-                .lineLimit(1)
-            Spacer(minLength: Theme.space2)
-            dueBadge
+        Button(action: select) {
+            HStack(spacing: Theme.space1) {
+                chevron
+                Text(summary.deck.name)
+                    .font(.callout)
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                Spacer(minLength: Theme.space2)
+                dueCount
+            }
+            .padding(.leading, Theme.space2 + CGFloat(depth) * DeckListView.indentStep)
+            .padding(.trailing, Theme.space2)
+            .frame(minHeight: DeckListView.rowHeight)
+            .background { SidebarRowBackground(isSelected: isSelected, isHovering: isHovering) }
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, Theme.space1)
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
-    /// Accent capsule while something is due, a quiet nothing once the deck is clear.
     @ViewBuilder
-    private var dueBadge: some View {
+    private var chevron: some View {
+        if let disclosure {
+            Button(action: toggleDisclosure) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(Theme.textTertiary)
+                    .rotationEffect(.degrees(disclosure ? 90 : 0))
+                    .frame(width: 12, height: 12)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(disclosure ? "Collapse \(summary.deck.name)" : "Expand \(summary.deck.name)")
+        } else {
+            Color.clear.frame(width: 12, height: 12)
+        }
+    }
+
+    /// Plain accent mono digits while something is due, a quiet nothing once clear —
+    /// a pill here would shout on every row of a dense list. `layoutPriority` keeps
+    /// the number whole: the deck name is what may truncate.
+    @ViewBuilder
+    private var dueCount: some View {
         if summary.dueCount > 0 {
             Text("\(summary.dueCount)")
-                .font(.caption)
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .padding(.horizontal, Theme.space2)
-                .padding(.vertical, Theme.space1 / 2)
-                .background(Theme.accent, in: .capsule)
+                .font(Theme.mono(.subheadline))
+                .foregroundStyle(Theme.accent)
+                .fixedSize()
+                .layoutPriority(1)
                 .help("Due today")
+        }
+    }
+}
+
+/// Ghost footer action: tertiary at rest, primary under the pointer.
+private struct NewDeckButton: View {
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Label("New Deck", systemImage: "plus")
+                .font(.callout)
+                .foregroundStyle(isHovering ? Theme.textPrimary : Theme.textTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Theme.space3)
+                .padding(.vertical, Theme.space2)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.pressable)
+        .onHover { isHovering = $0 }
+        // Opaque, or the last deck row scrolls underneath the footer.
+        .background(Theme.bg0)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Theme.hairline).frame(height: Theme.hairlineWidth)
         }
     }
 }

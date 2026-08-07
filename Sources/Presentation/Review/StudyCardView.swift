@@ -8,8 +8,8 @@ import SwiftUI
 /// Extracted from `ReviewSessionView` (M4, behaviour unchanged) so focus mode can
 /// embed the exact same study UI instead of duplicating it.
 ///
-/// The view carries its own `.cardSurface()` so the review sheet and the focus screen
-/// get the identical card without either of them restating the elevation.
+/// The view carries its own `.panel()` so the review sheet and the focus screen get
+/// the identical card without either of them restating the surface.
 ///
 /// Shortcuts are `.keyboardShortcut` on the buttons themselves: the buttons that must
 /// not respond simply do not exist in that state (Show Answer is replaced by the
@@ -24,7 +24,7 @@ struct StudyCardView: View {
 
     var body: some View {
         VStack(spacing: Theme.space5) {
-            // Short cards sit vertically centered (Mochi); long ones grow and scroll.
+            // Short cards sit vertically centered; long ones grow and scroll.
             GeometryReader { proxy in
                 ScrollView {
                     VStack(spacing: Theme.space5) {
@@ -34,8 +34,8 @@ struct StudyCardView: View {
                                 // A hairline, not a Divider: the back is revealed *below*
                                 // the front rather than split away from it.
                                 Rectangle()
-                                    .fill(.separator)
-                                    .frame(height: 1)
+                                    .fill(Theme.hairline)
+                                    .frame(height: Theme.hairlineWidth)
                                 fieldStack(fields(front: false))
                             }
                             .transition(revealTransition)
@@ -49,7 +49,7 @@ struct StudyCardView: View {
             controls
         }
         .padding(Theme.space6)
-        .cardSurface()
+        .panel()
     }
 
     @ViewBuilder
@@ -66,25 +66,30 @@ struct StudyCardView: View {
                 }
             }
         } else {
-            Button("Show Answer") {
+            Button {
                 withAnimation(revealAnimation) { model.revealed = true }
+            } label: {
+                HStack(spacing: Theme.space2) {
+                    Text("Show Answer")
+                    KeyHint("␣", onAccent: true)
+                }
+                .frame(width: 200)
             }
             .keyboardShortcut(.space, modifiers: [])
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .controlSize(.large)
-            .frame(width: 200)
+            .buttonStyle(AccentButtonStyle(verticalPadding: Theme.space2 + 2))
             .help("Press Space")
+            .accessibilityLabel("Show Answer")
         }
     }
 
-    /// Soft "flip" feel without literal 3D; plain fade when motion is reduced.
+    /// Pro, not playful: opacity plus a 4pt rise, no bounce. Plain fade when motion
+    /// is reduced.
     private var revealAnimation: Animation {
-        reduceMotion ? .easeOut(duration: 0.2) : .spring(duration: 0.35, bounce: 0.15)
+        .easeOut(duration: Theme.reveal)
     }
 
     private var revealTransition: AnyTransition {
-        reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .bottom))
+        reduceMotion ? .opacity : .opacity.combined(with: .offset(y: 4))
     }
 
     @ViewBuilder
@@ -95,12 +100,13 @@ struct StudyCardView: View {
                 // say so rather than render a blank card the user cannot interpret.
                 Text("This side has no content.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textTertiary)
             } else {
                 ForEach(fields.indices, id: \.self) { FieldContentView(fields[$0]) }
             }
         }
-        .font(.title2)
+        .font(.title2.weight(.medium))
+        .foregroundStyle(Theme.textPrimary)
         .lineSpacing(Theme.space1)
         .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
@@ -127,8 +133,9 @@ struct StudyCardView: View {
     }
 }
 
-/// One of the four answer capsules: rating colour on a wash of itself, with the
-/// preview interval as a caption underneath the name.
+/// One of the four answer blocks: a raised rectangle that borrows the rating's colour
+/// on hover, with the preview interval in mono underneath and the key number tucked
+/// into the top-right corner.
 private struct RatingButton: View {
     let rating: Rating
     let interval: String
@@ -136,21 +143,29 @@ private struct RatingButton: View {
 
     @State private var isHovering = false
 
+    private var tint: Color { Theme.color(for: rating) }
+
     var body: some View {
         Button(action: action) {
-            VStack(spacing: Theme.space1 / 2) {
+            VStack(spacing: 2) {
                 Text(StudyCardView.title(of: rating))
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(tint)
                 Text(interval)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.mono(.callout))
+                    .foregroundStyle(Theme.textSecondary)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, Theme.space2)
-            .foregroundStyle(Theme.color(for: rating))
-            .background(Theme.color(for: rating).opacity(isHovering ? 0.22 : 0.13), in: .capsule)
-            .contentShape(.capsule)
+            .padding(.vertical, Theme.space3)
+            .raised(
+                fill: isHovering ? tint.opacity(0.10) : Theme.bg2,
+                border: isHovering ? tint : Theme.hairline
+            )
+            .overlay(alignment: .topTrailing) {
+                KeyHint("\(rating.rawValue)").padding(Theme.space1)
+            }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressable)
         .onHover { isHovering = $0 }
         .keyboardShortcut(KeyEquivalent(Character("\(rating.rawValue)")), modifiers: [])
         .help("Press \(rating.rawValue)")

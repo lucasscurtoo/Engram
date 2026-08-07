@@ -26,18 +26,32 @@ struct DeckFormSheet: View {
 
     var body: some View {
         SheetLayout(title: title, confirm: "Save", isConfirmEnabled: !trimmedName.isEmpty) {
-            Form {
-                TextField("Name", text: $name)
+            VStack(alignment: .leading, spacing: Theme.space4) {
+                VStack(alignment: .leading, spacing: Theme.space2) {
+                    SectionCaps("Name")
+                    TextField("Name", text: $name)
+                        .textFieldStyle(.plain)
+                        .font(.callout)
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(.horizontal, Theme.space2)
+                        .frame(minHeight: 26)
+                        .raised()
+                }
                 if showsParentPicker {
-                    Picker("Parent deck", selection: $parentID) {
-                        Text("None (top level)").tag(UUID?.none)
-                        ForEach(sortedDecks, id: \.id) { deck in
-                            Text(DeckTree.fullName(of: deck.id, in: decks)).tag(UUID?.some(deck.id))
+                    VStack(alignment: .leading, spacing: Theme.space2) {
+                        SectionCaps("Parent Deck")
+                        Picker("Parent deck", selection: $parentID) {
+                            Text("None (top level)").tag(UUID?.none)
+                            ForEach(sortedDecks, id: \.id) { deck in
+                                Text(DeckTree.fullName(of: deck.id, in: decks)).tag(UUID?.some(deck.id))
+                            }
                         }
+                        .labelsHidden()
+                        .font(.callout)
                     }
                 }
             }
-            .formStyle(.grouped)
+            .padding(Theme.space4)
         } confirm: {
             let name = trimmedName
             let parentID = parentID
@@ -71,37 +85,61 @@ struct DeckConfigSheet: View {
 
     var body: some View {
         SheetLayout(title: deckName, confirm: "Save", isConfirmEnabled: true) {
-            Form {
-                Section("Scheduling") {
-                    VStack(alignment: .leading) {
-                        LabeledContent(
-                            "Desired retention",
-                            value: config.requestRetention.formatted(
-                                .percent.precision(.fractionLength(0))
-                            )
-                        )
-                        Slider(value: $config.requestRetention, in: 0.7...0.97, step: 0.01)
+            VStack(alignment: .leading, spacing: Theme.space3) {
+                SectionCaps("Scheduling")
+                VStack(alignment: .leading, spacing: Theme.space2) {
+                    HStack {
+                        Text("Desired retention")
+                            .font(.callout)
+                            .foregroundStyle(Theme.textSecondary)
+                        Spacer()
+                        Text(config.requestRetention.formatted(.percent.precision(.fractionLength(0))))
+                            .font(Theme.mono(.callout))
+                            .foregroundStyle(Theme.textPrimary)
                     }
-                    Stepper(
-                        "New cards per day: \(config.newCardsPerDay)",
-                        value: $config.newCardsPerDay, in: 0...500
-                    )
-                    Stepper(
-                        "Maximum reviews per day: \(config.maxReviewsPerDay)",
-                        value: $config.maxReviewsPerDay, in: 0...9999, step: 10
-                    )
+                    Slider(value: $config.requestRetention, in: 0.7...0.97, step: 0.01)
+                        .accessibilityLabel("Desired retention")
                 }
+                .padding(.horizontal, Theme.space3)
+                .padding(.vertical, Theme.space2)
+                .raised()
+
+                counter("New cards per day", value: $config.newCardsPerDay, range: 0...500, step: 1)
+                counter(
+                    "Maximum reviews per day", value: $config.maxReviewsPerDay,
+                    range: 0...9_999, step: 10
+                )
             }
-            .formStyle(.grouped)
+            .padding(Theme.space4)
         } confirm: {
             let config = config
             Task { await save(config) }
         }
         .frame(minWidth: 440)
     }
+
+    private func counter(
+        _ title: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int
+    ) -> some View {
+        Stepper(value: value, in: range, step: step) {
+            HStack(spacing: Theme.space2) {
+                Text(title)
+                    .font(.callout)
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer(minLength: Theme.space2)
+                Text("\(value.wrappedValue)")
+                    .font(Theme.mono(.callout))
+                    .foregroundStyle(Theme.textPrimary)
+            }
+        }
+        .padding(.horizontal, Theme.space3)
+        .padding(.vertical, Theme.space2)
+        .raised()
+    }
 }
 
 /// Title + content + Cancel/Confirm footer. `confirm` runs, then the sheet closes.
+/// Header and footer are hairline-separated bands on the content surface.
 struct SheetLayout<Content: View>: View {
     let title: String
     let confirm: String
@@ -126,20 +164,37 @@ struct SheetLayout<Content: View>: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
                 .font(.headline)
-                .padding([.horizontal, .top])
+                .foregroundStyle(Theme.textPrimary)
+                .padding(.horizontal, Theme.space4)
+                .padding(.vertical, Theme.space3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .bottomHairline()
             content
-            HStack {
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            HStack(spacing: Theme.space2) {
                 Spacer()
                 Button("Cancel", role: .cancel) { dismiss() }
+                    .buttonStyle(.quiet)
                     .keyboardShortcut(.cancelAction)
-                Button(confirm) {
+                Button {
                     onConfirm()
                     dismiss()
+                } label: {
+                    HStack(spacing: Theme.space2) {
+                        Text(confirm)
+                        KeyHint("⏎", onAccent: true)
+                    }
                 }
+                .buttonStyle(.accentAction)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isConfirmEnabled)
+                .accessibilityLabel(confirm)
             }
-            .padding([.horizontal, .bottom])
+            .padding(Theme.space4)
+            .overlay(alignment: .top) {
+                Rectangle().fill(Theme.hairline).frame(height: Theme.hairlineWidth)
+            }
         }
+        .background(Theme.bg1)
     }
 }

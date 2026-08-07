@@ -2,8 +2,11 @@ import Application
 import Domain
 import SwiftUI
 
-/// Deck detail: header (full "Parent::Child" name, rolled-up counts, Study placeholder)
-/// on top of the note browser scoped to the deck and its subdecks.
+/// Deck detail: header (full "Parent::Child" name, rolled-up counts, Study) on top of
+/// the note browser scoped to the deck and its subdecks.
+///
+/// Dense screen: header sits on the content surface, separated by a hairline, and the
+/// counts are monospaced because they are data.
 struct DeckDetailView: View {
     let summary: DeckService.DeckSummary
     let decks: [Deck]
@@ -15,11 +18,11 @@ struct DeckDetailView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
             CardListView(
                 deckID: summary.deck.id, deckIDs: deckIDs, onNotesChanged: onNotesChanged
             )
         }
+        .background(Theme.bg1)
     }
 
     private var deckIDs: [UUID] {
@@ -31,26 +34,30 @@ struct DeckDetailView: View {
         HStack(alignment: .center, spacing: Theme.space4) {
             VStack(alignment: .leading, spacing: Theme.space1) {
                 Text(DeckTree.fullName(of: summary.deck.id, in: decks))
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(.title3.bold())
+                    .foregroundStyle(Theme.textPrimary)
                 Text("^[\(summary.cardCount) cards](inflect: true) · \(summary.dueCount) due today")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.mono(.subheadline))
+                    .foregroundStyle(Theme.textSecondary)
             }
             Spacer(minLength: Theme.space4)
             // The one strong element on this screen.
             Button {
                 launcher.scope = .deck(summary.deck.id)
             } label: {
-                Label("Study", systemImage: "play.fill")
+                HStack(spacing: Theme.space2) {
+                    Image(systemName: "play.fill").font(.caption)
+                    Text("Study")
+                    KeyHint("⌘S", onAccent: true)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .buttonBorderShape(.capsule)
-            .controlSize(.large)
+            .buttonStyle(.accentAction)
             .keyboardShortcut("s", modifiers: [.command])
             .help("Study this deck and its subdecks")
             .accessibilityLabel("Study this deck")
         }
         .padding(Theme.space4)
+        .background(Theme.bg1)
+        .bottomHairline()
     }
 }

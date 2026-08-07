@@ -34,14 +34,16 @@ struct QuickAddView: View {
                 footer
             }
         }
+        .uiZoom()
         .frame(minWidth: 420, minHeight: 420)
+        .background(Theme.bg1)
         .errorAlert(dependencies.errors)
         .task { await load() }
         .onExitCommand { dismiss() }
     }
 
-    /// Deck (and note type) live above the form as compact menus — Things' quick-entry
-    /// habit of putting "where does this go" first, without a labelled form row.
+    /// Deck (and note type) live above the form as compact menus — "where does this
+    /// go" first, without a labelled form row.
     private var pickers: some View {
         HStack(spacing: Theme.space2) {
             Picker("Deck", selection: $selectedDeckID) {
@@ -63,36 +65,49 @@ struct QuickAddView: View {
             }
             Spacer(minLength: 0)
         }
+        .font(.callout)
         .padding(.horizontal, Theme.space4)
-        .padding(.top, Theme.space4)
+        .padding(.vertical, Theme.space3)
+        .bottomHairline()
     }
 
     private var form: some View {
-        Form {
+        ScrollView {
             if let noteType {
                 NoteFieldsEditor(noteType: noteType, fields: $fields, tagsText: $tagsText)
+                    .padding(Theme.space4)
             }
         }
-        .formStyle(.grouped)
     }
 
     private var footer: some View {
         HStack(spacing: Theme.space2) {
             if savedCount > 0 {
                 Text(savedCount == 1 ? "1 note added" : "\(savedCount) notes added")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.mono(.subheadline))
+                    .foregroundStyle(Theme.textSecondary)
             }
             Spacer()
             Button("Close") { dismiss() }
+                .buttonStyle(.quiet)
                 .keyboardShortcut(.cancelAction)
-            Button("Save") { save() }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
-                .keyboardShortcut(.defaultAction)
-                .disabled(!canSave)
+            Button {
+                save()
+            } label: {
+                HStack(spacing: Theme.space2) {
+                    Text("Save")
+                    KeyHint("⏎", onAccent: true)
+                }
+            }
+            .buttonStyle(.accentAction)
+            .keyboardShortcut(.defaultAction)
+            .disabled(!canSave)
+            .accessibilityLabel("Save")
         }
         .padding(Theme.space4)
+        .overlay(alignment: .top) {
+            Rectangle().fill(Theme.hairline).frame(height: Theme.hairlineWidth)
+        }
     }
 
     private var noteType: NoteType? {

@@ -11,7 +11,10 @@ struct MenuBarTimerLabel: View {
 
     var body: some View {
         if let model, model.isRunning {
+            // Monospaced like every other datum in the app, so the menu bar stops
+            // shuffling sideways as the digits change.
             Label(model.timerText, systemImage: model.phaseSymbol)
+                .font(Theme.mono(.body))
                 .accessibilityLabel("\(model.phaseTitle), \(model.timerText) remaining")
         } else {
             Image(systemName: "timer")

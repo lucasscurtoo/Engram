@@ -4,6 +4,8 @@ import SwiftUI
 /// Note browser for a deck (subdecks included): text + tag filtering through
 /// `NoteQuery`, edit and delete. Rows render the note type's *first* field —
 /// there is no hardcoded "front".
+///
+/// Dense screen: 26pt raised fields, quiet buttons, ~30pt rows separated by hairlines.
 struct CardListView: View {
     /// Deck new notes are filed into.
     let deckID: UUID
@@ -28,9 +30,9 @@ struct CardListView: View {
     var body: some View {
         VStack(spacing: 0) {
             filters
-            Divider()
             content
         }
+        .background(Theme.bg1)
         .task(id: Query(deckIDs: deckIDs, text: searchText, tag: tagFilter)) {
             // Debounce typing; `.task(id:)` cancels the previous run for us.
             if hasLoaded {
@@ -62,17 +64,14 @@ struct CardListView: View {
 
     private var filters: some View {
         HStack(spacing: Theme.space2) {
-            TextField("Search notes", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-            TextField("Tag", text: $tagFilter)
-                .textFieldStyle(.roundedBorder)
-                .frame(width: 160)
+            FilterField(prompt: "Search notes", text: $searchText)
+            FilterField(prompt: "Tag", text: $tagFilter).frame(width: 140)
             Button {
                 launcher.scope = .tag(tagFilter)
             } label: {
                 Label("Study Tag", systemImage: "play")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.quiet)
             .disabled(tagFilter.isEmpty)
             .help("Study every card tagged “\(tagFilter)”")
             Button {
@@ -80,11 +79,14 @@ struct CardListView: View {
             } label: {
                 Label("New Note", systemImage: "plus")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.quiet)
             .help("New note in this deck")
             .accessibilityLabel("New note")
         }
-        .padding(Theme.space4)
+        .padding(.horizontal, Theme.space4)
+        .padding(.vertical, Theme.space2)
+        .background(Theme.bg1)
+        .bottomHairline()
     }
 
     @ViewBuilder
@@ -105,6 +107,9 @@ struct CardListView: View {
         } else {
             List(notes, selection: $selection) { note in
                 NoteRow(note: note, noteType: noteTypesByID[note.noteTypeID])
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparatorTint(Theme.hairline)
                     .contentShape(Rectangle())
                     .onTapGesture(count: 2) { editedNote = note }
                     .contextMenu {
@@ -114,6 +119,9 @@ struct CardListView: View {
                     }
                     .tag(note.id)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Theme.bg1)
         }
     }
 
@@ -163,6 +171,22 @@ struct CardListView: View {
     }
 }
 
+/// 26pt raised text field — the system's bezel is far too tall for this bar.
+private struct FilterField: View {
+    let prompt: String
+    @Binding var text: String
+
+    var body: some View {
+        TextField(prompt, text: $text)
+            .textFieldStyle(.plain)
+            .font(.callout)
+            .foregroundStyle(Theme.textPrimary)
+            .padding(.horizontal, Theme.space2)
+            .frame(minHeight: 26)
+            .raised()
+    }
+}
+
 private struct NoteRow: View {
     let note: Note
     let noteType: NoteType?
@@ -170,34 +194,30 @@ private struct NoteRow: View {
     @State private var isHovering = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Theme.space2) {
-            if let def = noteType?.fields.first {
-                FieldContentView(def: def, content: note.fields[def.name] ?? "")
-                    .lineLimit(2)
-            } else {
-                Text("Unknown note type").foregroundStyle(.secondary)
-            }
-            if !note.tags.isEmpty {
-                HStack(spacing: Theme.space1) {
-                    ForEach(note.tags, id: \.self) { tag in
-                        Text(tag)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, Theme.space2)
-                            .padding(.vertical, Theme.space1 / 2)
-                            .background(.quaternary, in: .capsule)
-                    }
+        HStack(spacing: Theme.space3) {
+            Group {
+                if let def = noteType?.fields.first {
+                    FieldContentView(def: def, content: note.fields[def.name] ?? "")
+                } else {
+                    Text("Unknown note type").foregroundStyle(Theme.textTertiary)
                 }
             }
+            .font(.callout)
+            .lineLimit(1)
+            Spacer(minLength: Theme.space3)
+            if !note.tags.isEmpty {
+                // Inline mono "#tag" instead of pills: a dense list cannot afford
+                // four capsules per row.
+                Text(note.tags.map { "#\($0)" }.joined(separator: " "))
+                    .font(Theme.mono(.subheadline))
+                    .foregroundStyle(Theme.textTertiary)
+                    .lineLimit(1)
+            }
         }
+        .padding(.horizontal, Theme.space4)
+        .frame(minHeight: 30)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, Theme.space2)
-        .padding(.horizontal, Theme.space2)
-        .background {
-            RoundedRectangle(cornerRadius: Theme.Radius.control)
-                .fill(.quaternary)
-                .opacity(isHovering ? 1 : 0)
-        }
+        .background(isHovering ? Theme.bg2 : Color.clear)
         .onHover { isHovering = $0 }
     }
 }

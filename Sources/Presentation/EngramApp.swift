@@ -26,11 +26,17 @@ struct EngramApp: App {
             case .success(let dependencies):
                 ContentView(dependencies: dependencies)
                     .environment(dependencies)
+                    .uiZoom()
             case .failure(let error):
                 StartupErrorView(error: error)
             }
         }
         .commands {
+            // Lands in the standard View menu, next to Show/Hide Sidebar.
+            CommandGroup(after: .sidebar) {
+                Divider()
+                ZoomCommands()
+            }
             CommandMenu("Notes") {
                 QuickAddCommand()
             }
@@ -112,6 +118,8 @@ struct ContentView: View {
                     systemImage: "rectangle.stack",
                     description: Text("Pick a deck in the sidebar to browse or study its cards.")
                 )
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.bg0)
             }
         }
         .environment(launcher)
