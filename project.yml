@@ -32,6 +32,8 @@ targets:
       path: Sources/Presentation/Info.plist
       properties:
         CFBundleDisplayName: Engram # TODO(owner): rename here if the app name changes
+        CFBundleShortVersionString: 0.1.0
+        CFBundleVersion: "1"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.engram.app

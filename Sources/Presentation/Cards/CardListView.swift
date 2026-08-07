@@ -85,6 +85,7 @@ struct CardListView: View {
         }
         .padding(.horizontal, Theme.space4)
         .padding(.vertical, Theme.space2)
+        .contentColumn()
         .background(Theme.bg1)
         .bottomHairline()
     }
@@ -217,6 +218,7 @@ private struct NoteRow: View {
         .padding(.horizontal, Theme.space4)
         .frame(minHeight: 30)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .contentColumn()
         .background(isHovering ? Theme.bg2 : Color.clear)
         .onHover { isHovering = $0 }
     }

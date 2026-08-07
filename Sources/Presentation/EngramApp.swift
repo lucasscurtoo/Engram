@@ -31,6 +31,9 @@ struct EngramApp: App {
                 StartupErrorView(error: error)
             }
         }
+        // No title band: the design draws its own chrome, and in full screen the
+        // stock titlebar strip reads as a glitch between the two toolbars.
+        .windowStyle(.hiddenTitleBar)
         .commands {
             // Lands in the standard View menu, next to Show/Hide Sidebar.
             CommandGroup(after: .sidebar) {

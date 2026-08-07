@@ -120,6 +120,13 @@ enum Theme {
 // MARK: - Surface modifiers
 
 extension View {
+    /// Caps reading-width content on wide/full-screen windows: the band behind
+    /// stays full-bleed, the content column centers at a readable measure.
+    func contentColumn(maxWidth: CGFloat = 920) -> some View {
+        frame(maxWidth: maxWidth)
+            .frame(maxWidth: .infinity)
+    }
+
     /// The content surface: study card, sheets, stat tiles, chart panels.
     func panel(radius: CGFloat = Theme.Radius.card) -> some View {
         background(Theme.bg1, in: .rect(cornerRadius: radius))

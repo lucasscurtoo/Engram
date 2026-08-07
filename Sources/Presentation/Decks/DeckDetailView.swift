@@ -62,6 +62,7 @@ struct DeckDetailView: View {
             .accessibilityLabel("Study this deck")
         }
         .padding(Theme.space4)
+        .contentColumn()
         .background(Theme.bg1)
         .bottomHairline()
     }

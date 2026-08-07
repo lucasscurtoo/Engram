@@ -1,9 +1,23 @@
 # Engram
 
-Native macOS spaced-repetition study app, open source. Two jobs: **retain**
-knowledge over time (FSRS v5 scheduling) and **sustain focus** while studying
-(integrated focus mode). Local-first: your data lives on your disk, no
-accounts, no networking.
+[![License: MIT](https://img.shields.io/badge/License-MIT-1a1a21.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/macOS-14%2B-847DFF.svg)](#install)
+[![Release](https://img.shields.io/github/v/release/lucasscurtoo/Engram?color=847DFF)](https://github.com/lucasscurtoo/Engram/releases/latest)
+
+Native macOS spaced-repetition study app, open source (MIT). Two jobs:
+**retain** knowledge over time (FSRS v5 scheduling) and **sustain focus**
+while studying (integrated focus mode). Local-first: your data lives on your
+disk, no accounts, no networking.
+
+## Install
+
+**[⬇ Download the latest release](https://github.com/lucasscurtoo/Engram/releases/latest)** —
+grab `Engram.zip`, unzip, drag `Engram.app` to Applications.
+
+First launch: the app is not notarized, so macOS will warn you. **Right-click →
+Open → Open** (only needed once). Requires macOS 14+.
+
+Prefer building from source? See [Build](#build).
 
 > To rename the app: `Sources/Presentation/EngramApp.swift` (`AppInfo.name`)
 > and `project.yml` — nowhere else.

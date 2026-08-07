@@ -40,7 +40,9 @@ struct StatsView: View {
             } else if let overview = model.overview {
                 if model.hasHistory {
                     ScrollView {
-                        OverviewCharts(overview: overview).padding(Theme.space5)
+                        OverviewCharts(overview: overview)
+                            .padding(Theme.space5)
+                            .contentColumn()
                     }
                 } else {
                     ContentUnavailableView(
