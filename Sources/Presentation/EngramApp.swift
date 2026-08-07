@@ -100,6 +100,7 @@ struct ContentView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: $columns) {
             DeckListView(model: decks, selection: $selection)
+                .background(WindowBackground())
         } detail: {
             switch selection {
             case .deck(let id):

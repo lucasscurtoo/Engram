@@ -117,6 +117,26 @@ enum Theme {
     static let reveal: Double = 0.18
 }
 
+// MARK: - Window chrome
+
+/// Paints the NSWindow itself bg0. In full screen macOS floats the sidebar as an
+/// inset rounded pane over the window background — on a pure-black window that
+/// reads as a detached card. Same color underneath = one integrated surface.
+struct WindowBackground: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            // Named color from the asset catalog: stays dynamic across appearance flips.
+            view.window?.backgroundColor = NSColor(named: "BG0") ?? .windowBackgroundColor
+        }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        nsView.window?.backgroundColor = NSColor(named: "BG0") ?? .windowBackgroundColor
+    }
+}
+
 // MARK: - Surface modifiers
 
 extension View {
