@@ -112,16 +112,32 @@ struct EngramMCPServer {
         ],
         [
             "name": "create_note",
-            "description": "Add a study note (front/back, markdown supported) to a deck. Generates its review card automatically.",
+            "description": """
+            Add a study note to a deck; its review cards are generated automatically. \
+            Content supports markdown AND LaTeX math — inline $\\frac{1}{2}$ or display \
+            $$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$ (KaTeX). Prefer LaTeX for any \
+            math notation: fractions, exponents, roots, equations. Three note types: \
+            "basic" (front/back), "cloze" (a single text where each {{c1::answer}} or \
+            {{c1::answer::hint}} marker becomes its own card — best type for facts and \
+            code), "parametric" (front/back with {a}-style placeholders plus a variables \
+            spec like "a = 2..12, b = 1..9"; {= a*b} computes — numbers regenerate every \
+            review, so the student practices the procedure).
+            """,
             "inputSchema": [
                 "type": "object",
                 "properties": [
                     "deck": ["type": "string", "description": "Full path name of the target deck, e.g. \"Math::Fractions\""],
-                    "front": ["type": "string", "description": "Question side (markdown)"],
-                    "back": ["type": "string", "description": "Answer side (markdown)"],
+                    "type": [
+                        "type": "string", "enum": ["basic", "cloze", "parametric"],
+                        "description": "Note type; default basic",
+                    ],
+                    "front": ["type": "string", "description": "Question side (basic/parametric). Markdown + LaTeX."],
+                    "back": ["type": "string", "description": "Answer side (basic/parametric). Markdown + LaTeX."],
+                    "text": ["type": "string", "description": "Cloze only: full text with {{cN::answer::hint}} markers. Markdown + LaTeX."],
+                    "variables": ["type": "string", "description": "Parametric only: ranges, e.g. \"a = 2..12, b = 1..9\""],
                     "tags": ["type": "array", "items": ["type": "string"], "description": "Optional tags"],
                 ],
-                "required": ["deck", "front", "back"],
+                "required": ["deck"],
             ],
         ],
         [
@@ -183,21 +199,53 @@ struct EngramMCPServer {
     }
 
     private func createNote(_ args: [String: Any]) async throws -> String {
-        guard let deckPath = args["deck"] as? String,
-              let front = args["front"] as? String,
-              let back = args["back"] as? String else {
-            throw MCPError("\"deck\", \"front\" and \"back\" are required")
+        guard let deckPath = args["deck"] as? String else {
+            throw MCPError("\"deck\" is required")
         }
         let deck = try await resolveDeck(path: deckPath)
-        let noteType = try await noteTypeRepository.noteType(id: NoteType.basic.id) ?? .basic
-        let tags = (args["tags"] as? [Any])?.compactMap { $0 as? String } ?? []
+        let kind = NoteTypeKind(rawValue: args["type"] as? String ?? "basic") ?? .basic
+        let builtIn: NoteType = switch kind {
+        case .basic: .basic
+        case .cloze: .cloze
+        case .parametric: .parametric
+        }
+
         // Fields keyed by the note type's field defs — same seam the app editor uses.
+        var fields: [String: String] = [:]
+        switch kind {
+        case .basic:
+            guard let front = args["front"] as? String, let back = args["back"] as? String else {
+                throw MCPError("basic notes need \"front\" and \"back\"")
+            }
+            fields = ["front": front, "back": back]
+        case .cloze:
+            guard let text = args["text"] as? String else {
+                throw MCPError("cloze notes need \"text\" with {{cN::answer}} markers")
+            }
+            guard !Cloze.indices(in: text).isEmpty else {
+                throw MCPError("no {{cN::answer}} markers found — a cloze note needs at least one")
+            }
+            fields = ["text": text]
+        case .parametric:
+            guard let front = args["front"] as? String, let back = args["back"] as? String,
+                  let variables = args["variables"] as? String else {
+                throw MCPError("parametric notes need \"front\", \"back\" and \"variables\"")
+            }
+            guard !Parametric.values(spec: variables, seed: 1).isEmpty else {
+                throw MCPError("no valid ranges in \"variables\" — expected e.g. \"a = 2..12, b = 1..9\"")
+            }
+            fields = ["front": front, "back": back, "variables": variables]
+        }
+
+        let noteType = try await noteTypeRepository.noteType(id: builtIn.id) ?? builtIn
+        let tags = (args["tags"] as? [Any])?.compactMap { $0 as? String } ?? []
         let note = try await deckService.addNote(
-            deckID: deck.id, noteType: noteType,
-            fields: ["front": front, "back": back], tags: tags, now: Date()
+            deckID: deck.id, noteType: noteType, fields: fields, tags: tags, now: Date()
         )
+        let cardCount = noteType.templateIndices(for: note).count
+        let cards = cardCount == 1 ? "1 card" : "\(cardCount) cards"
         let tagInfo = note.tags.isEmpty ? "" : " [\(note.tags.map { "#\($0)" }.joined(separator: " "))]"
-        return "Added note to \"\(deckPath)\"\(tagInfo). It is due for its first review now."
+        return "Added \(kind.rawValue) note (\(cards)) to \"\(deckPath)\"\(tagInfo). Due for first review now."
     }
 
     private func searchNotes(_ args: [String: Any]) async throws -> String {
