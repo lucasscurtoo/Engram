@@ -1,3 +1,4 @@
+import AppKit
 import Application
 import Domain
 import Foundation
@@ -54,6 +55,22 @@ final class FocusSessionViewModel {
         }
     }
 
+    /// One-tap pomodoro configurations shown as chips in setup.
+    struct PomodoroPreset: Identifiable, Hashable {
+        let name: String
+        let work: Int
+        let shortBreak: Int
+        let longBreak: Int
+        let cycles: Int
+        var id: String { name }
+
+        static let all: [PomodoroPreset] = [
+            PomodoroPreset(name: "Classic", work: 25, shortBreak: 5, longBreak: 15, cycles: 4),
+            PomodoroPreset(name: "Extended", work: 50, shortBreak: 10, longBreak: 20, cycles: 3),
+            PomodoroPreset(name: "Deep", work: 90, shortBreak: 15, longBreak: 30, cycles: 2),
+        ]
+    }
+
     // MARK: - Setup state
 
     var modeKind: ModeKind = .pomodoro
@@ -61,6 +78,18 @@ final class FocusSessionViewModel {
     var shortBreakMinutes = 5
     var longBreakMinutes = 15
     var cyclesPerLongBreak = 4
+
+    func apply(_ preset: PomodoroPreset) {
+        workMinutes = preset.work
+        shortBreakMinutes = preset.shortBreak
+        longBreakMinutes = preset.longBreak
+        cyclesPerLongBreak = preset.cycles
+    }
+
+    func isActive(_ preset: PomodoroPreset) -> Bool {
+        workMinutes == preset.work && shortBreakMinutes == preset.shortBreak
+            && longBreakMinutes == preset.longBreak && cyclesPerLongBreak == preset.cycles
+    }
     var breakReminderEnabled = true
     var breakReminderMinutes = 50
 
@@ -140,6 +169,23 @@ final class FocusSessionViewModel {
     }
 
     var goalProgress: Double? { status?.goalProgress }
+
+    /// 0...1 through the current pomodoro phase; nil when open-ended (deep work/idle).
+    /// Survives pauses — the engine keeps the frozen remainder in its status.
+    var phaseProgress: Double? {
+        guard let status, let duration = status.phaseDuration, duration > 0,
+              let remaining = status.remaining else { return nil }
+        return min(1, max(0, 1 - remaining / duration))
+    }
+
+    /// Work blocks completed in the current long-break round, e.g. (2, 4) = ●●○○.
+    /// A long break shows the round it just earned, fully filled.
+    var cycleDots: (filled: Int, total: Int)? {
+        guard isRunning, let status, let total = status.cyclesPerLongBreak, total > 1
+        else { return nil }
+        if status.phase == .longBreak { return (total, total) }
+        return (status.completedFocusBlocks % total, total)
+    }
 
     var goalDetail: String? {
         guard let status, let goal = status.goal else { return nil }
@@ -255,15 +301,23 @@ final class FocusSessionViewModel {
         await ambience.play(ambienceTrack, volume: ambienceVolume)
     }
 
+    /// Distinct chimes for the two transitions that matter mid-session: winding
+    /// down into a break vs. snapping back to work. System sounds, no assets.
+    private func chime(_ name: String) {
+        NSSound(named: name)?.play()
+    }
+
     private func apply(_ events: [FocusEvent], announce: Bool = true) async {
         for event in events {
             switch event {
             case .phaseStarted(.focusing):
                 if announce {
+                    chime("Ping")
                     await notifier.notify(title: "Back to focus", body: "Your next block has started.")
                 }
             case .phaseStarted(.shortBreak), .phaseStarted(.longBreak):
                 if announce {
+                    chime("Glass")
                     await notifier.notify(title: "Break time", body: "Step away for a moment.")
                 }
             case .phaseStarted:

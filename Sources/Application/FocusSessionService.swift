@@ -50,8 +50,13 @@ public enum FocusEvent: Sendable, Hashable {
 /// Snapshot for rendering. Everything is a function of the session state + `now`.
 public struct FocusStatus: Sendable, Hashable {
     public let phase: FocusPhase
-    /// nil = open-ended (deep work, paused deep work, or idle).
+    /// nil = open-ended (deep work or idle). While paused this is the frozen
+    /// remainder of the interrupted phase, so progress UIs keep their state.
     public let remaining: TimeInterval?
+    /// Full length of the current (or paused) phase; nil when open-ended.
+    public let phaseDuration: TimeInterval?
+    /// Pomodoro only: work blocks per long-break round.
+    public let cyclesPerLongBreak: Int?
     /// Total focused time this session, current block included.
     public let focusedSeconds: TimeInterval
     /// Finished pomodoro work blocks.
@@ -212,12 +217,28 @@ public actor FocusSessionService {
     public func status(now: Date) -> FocusStatus {
         FocusStatus(
             phase: phase,
-            remaining: phaseEndsAt.map { max(0, $0.timeIntervalSince(now)) },
+            remaining: phaseEndsAt.map { max(0, $0.timeIntervalSince(now)) } ?? pausedRemaining,
+            phaseDuration: currentPhaseDuration,
+            cyclesPerLongBreak: {
+                guard case .pomodoro(let config) = mode else { return nil }
+                return config.cyclesPerLongBreak
+            }(),
             focusedSeconds: focusedSeconds(now: now),
             completedFocusBlocks: completedFocusBlocks,
             cardsCompleted: cardsCompleted,
             goal: goal
         )
+    }
+
+    private var currentPhaseDuration: TimeInterval? {
+        guard case .pomodoro(let config) = mode else { return nil }
+        let effective = phase == .paused ? pausedPhase : phase
+        return switch effective {
+        case .focusing: config.work
+        case .shortBreak: config.shortBreak
+        case .longBreak: config.longBreak
+        case .idle, .paused, nil: nil
+        }
     }
 
     // MARK: - Private

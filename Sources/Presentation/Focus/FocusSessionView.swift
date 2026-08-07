@@ -40,6 +40,20 @@ struct FocusSessionView: View {
                 .labelsHidden()
 
                 if model.modeKind == .pomodoro {
+                    HStack(spacing: Theme.space2) {
+                        ForEach(FocusSessionViewModel.PomodoroPreset.all) { preset in
+                            Button("\(preset.name) · \(preset.work)/\(preset.shortBreak)") {
+                                model.apply(preset)
+                            }
+                            .buttonStyle(.bordered)
+                            .buttonBorderShape(.capsule)
+                            .controlSize(.small)
+                            .tint(model.isActive(preset) ? Theme.accent : .secondary)
+                            .accessibilityLabel(
+                                "\(preset.name) preset, \(preset.work) minute work, \(preset.shortBreak) minute break"
+                            )
+                        }
+                    }
                     minutes("Work", value: $model.workMinutes, range: 1...180)
                     minutes("Short break", value: $model.shortBreakMinutes, range: 1...60)
                     minutes("Long break", value: $model.longBreakMinutes, range: 1...90)
@@ -156,25 +170,59 @@ struct FocusSessionView: View {
     }
 
     private var timer: some View {
-        VStack(spacing: Theme.space2) {
+        VStack(spacing: Theme.space3) {
             Label(model.phaseTitle, systemImage: model.phaseSymbol)
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(model.timerText)
-                    // Deliberately fixed at 72pt: this is the one glanceable element of
-                    // the running screen and it must not reflow every second.
-                    .font(.system(size: 72, weight: .light, design: .monospaced))
-                    .monospacedDigit()
-                    .contentTransition(reduceMotion ? .identity : .numericText())
-                    .accessibilityLabel("\(model.phaseTitle), \(model.timerText)")
-                if model.isOpenEnded {
-                    Text("∞")
-                        .font(.system(size: 34, weight: .light))
-                        .foregroundStyle(.tertiary)
-                        .help("Open-ended block — the timer counts up")
-                        .accessibilityLabel("Open-ended block, the timer counts up")
+            if let phaseProgress = model.phaseProgress {
+                // Pomodoro: the ring from the app icon, with the countdown inside.
+                ZStack {
+                    Circle()
+                        .stroke(.quaternary, lineWidth: 6)
+                    Circle()
+                        .trim(from: 0, to: phaseProgress)
+                        .stroke(Theme.accent, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(reduceMotion ? nil : .linear(duration: 1), value: phaseProgress)
+                    Text(model.timerText)
+                        .font(.system(size: 44, weight: .light, design: .monospaced))
+                        .monospacedDigit()
+                        .contentTransition(reduceMotion ? .identity : .numericText())
                 }
+                .frame(width: 210, height: 210)
+                .padding(Theme.space2)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(model.phaseTitle), \(model.timerText)")
+            } else {
+                // Deep work: no phase to fill a ring with — the big count-up stays.
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    Text(model.timerText)
+                        // Deliberately fixed at 72pt: this is the one glanceable element of
+                        // the running screen and it must not reflow every second.
+                        .font(.system(size: 72, weight: .light, design: .monospaced))
+                        .monospacedDigit()
+                        .contentTransition(reduceMotion ? .identity : .numericText())
+                        .accessibilityLabel("\(model.phaseTitle), \(model.timerText)")
+                    if model.isOpenEnded {
+                        Text("∞")
+                            .font(.system(size: 34, weight: .light))
+                            .foregroundStyle(.tertiary)
+                            .help("Open-ended block — the timer counts up")
+                            .accessibilityLabel("Open-ended block, the timer counts up")
+                    }
+                }
+            }
+            if let dots = model.cycleDots {
+                HStack(spacing: Theme.space2) {
+                    ForEach(0..<dots.total, id: \.self) { index in
+                        Circle()
+                            .fill(index < dots.filled ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.quaternary))
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(dots.filled) of \(dots.total) blocks until the long break")
+                .help("Blocks until the long break")
             }
             if let progress = model.goalProgress {
                 VStack(spacing: Theme.space1) {

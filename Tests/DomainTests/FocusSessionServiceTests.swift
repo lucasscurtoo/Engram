@@ -23,7 +23,7 @@ struct FocusSessionServiceTests {
         work: 25 * 60, shortBreak: 5 * 60, longBreak: 15 * 60, cyclesPerLongBreak: 4
     ))
 
-    @Test func pomodoroWalksWorkBreakCycle() async {
+    @Test func pomodoroWalksWorkBreakCycle() async throws {
         let (service, _) = makeService()
         var events = await service.start(mode: pomodoro, goal: nil, studyScope: nil, now: start)
         #expect(events == [.phaseStarted(.focusing)])
@@ -40,6 +40,8 @@ struct FocusSessionServiceTests {
         #expect(status.phase == .shortBreak)
         #expect(status.focusedSeconds == 25 * 60)
         #expect(status.completedFocusBlocks == 1)
+        #expect(try #require(status.phaseDuration) == 5 * 60)
+        #expect(status.cyclesPerLongBreak == 4)
 
         // Break ends -> focusing again.
         events = await service.advance(now: start.addingTimeInterval(30 * 60))
@@ -74,6 +76,9 @@ struct FocusSessionServiceTests {
         var status = await service.status(now: start.addingTimeInterval(10 * 60))
         #expect(status.phase == .paused)
         #expect(status.focusedSeconds == 10 * 60)
+        // Paused status keeps the frozen remainder + duration so rings don't blank out.
+        #expect(try #require(status.remaining) == 15 * 60)
+        #expect(try #require(status.phaseDuration) == 25 * 60)
 
         // 20 idle minutes later: no drift while paused.
         let resumeAt = start.addingTimeInterval(30 * 60)
