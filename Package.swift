@@ -5,7 +5,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "RecallCore",
+    name: "EngramCore",
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "Domain", targets: ["Domain"]),

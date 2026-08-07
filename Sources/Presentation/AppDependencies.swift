@@ -6,7 +6,7 @@ import SwiftData
 
 /// Composition root: one on-disk `ModelContainer` for the whole app, one repository
 /// per aggregate on top of it, and the `DeckService` that every write goes through.
-/// Built once in `RecallApp` and handed to the view tree via `.environment`.
+/// Built once in `EngramApp` and handed to the view tree via `.environment`.
 @MainActor
 @Observable
 final class AppDependencies {
@@ -33,7 +33,7 @@ final class AppDependencies {
     @ObservationIgnored private(set) lazy var focus = FocusSessionViewModel(dependencies: self)
 
     init() throws {
-        let container = try ModelContainer.recall()
+        let container = try ModelContainer.engram()
         modelContainer = container
         deckRepository = SwiftDataDeckRepository(modelContainer: container)
         cardRepository = SwiftDataCardRepository(modelContainer: container)

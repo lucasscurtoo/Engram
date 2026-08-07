@@ -4,7 +4,7 @@ import SwiftData
 
 /// Schema v1. Versioned from day one so the first real migration is a `MigrationStage`
 /// and not a destructive reset.
-public enum RecallSchemaV1: VersionedSchema {
+public enum EngramSchemaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
     public static var models: [any PersistentModel.Type] {
@@ -13,38 +13,38 @@ public enum RecallSchemaV1: VersionedSchema {
     }
 }
 
-public enum RecallMigrationPlan: SchemaMigrationPlan {
-    public static var schemas: [any VersionedSchema.Type] { [RecallSchemaV1.self] }
+public enum EngramMigrationPlan: SchemaMigrationPlan {
+    public static var schemas: [any VersionedSchema.Type] { [EngramSchemaV1.self] }
     /// Empty until v2 exists.
     public static var stages: [MigrationStage] { [] }
 }
 
 extension ModelContainer {
-    /// On-disk store. `directory` defaults to `Application Support/Recall`;
+    /// On-disk store. `directory` defaults to `Application Support/Engram`;
     /// tests pass a temp directory so they never touch the user's library.
-    public static func recall(directory: URL? = nil) throws -> ModelContainer {
+    public static func engram(directory: URL? = nil) throws -> ModelContainer {
         let directory = try directory ?? defaultStoreDirectory()
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let configuration = ModelConfiguration(
-            schema: Schema(versionedSchema: RecallSchemaV1.self),
-            url: directory.appendingPathComponent("Recall.store")
+            schema: Schema(versionedSchema: EngramSchemaV1.self),
+            url: directory.appendingPathComponent("Engram.store")
         )
-        return try makeRecallContainer(configuration)
+        return try makeEngramContainer(configuration)
     }
 
     /// Ephemeral store for tests and previews.
-    public static func recallInMemory() throws -> ModelContainer {
+    public static func engramInMemory() throws -> ModelContainer {
         let configuration = ModelConfiguration(
-            schema: Schema(versionedSchema: RecallSchemaV1.self),
+            schema: Schema(versionedSchema: EngramSchemaV1.self),
             isStoredInMemoryOnly: true
         )
-        return try makeRecallContainer(configuration)
+        return try makeEngramContainer(configuration)
     }
 
-    private static func makeRecallContainer(_ configuration: ModelConfiguration) throws -> ModelContainer {
+    private static func makeEngramContainer(_ configuration: ModelConfiguration) throws -> ModelContainer {
         let container = try ModelContainer(
-            for: Schema(versionedSchema: RecallSchemaV1.self),
-            migrationPlan: RecallMigrationPlan.self,
+            for: Schema(versionedSchema: EngramSchemaV1.self),
+            migrationPlan: EngramMigrationPlan.self,
             configurations: configuration
         )
         try seedBuiltInNoteTypes(in: container)
@@ -68,6 +68,6 @@ extension ModelContainer {
         try FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask,
             appropriateFor: nil, create: true
-        ).appendingPathComponent("Recall", isDirectory: true)
+        ).appendingPathComponent("Engram", isDirectory: true)
     }
 }

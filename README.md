@@ -1,11 +1,11 @@
-# Recall
+# Engram
 
 Native macOS spaced-repetition study app, open source. Two jobs: **retain**
 knowledge over time (FSRS v5 scheduling) and **sustain focus** while studying
 (integrated focus mode). Local-first: your data lives on your disk, no
 accounts, no networking.
 
-> Working title. Rename in `Sources/Presentation/RecallApp.swift` (`AppInfo.name`)
+> To rename the app: `Sources/Presentation/EngramApp.swift` (`AppInfo.name`)
 > and `project.yml` — nowhere else.
 
 ## Features
@@ -39,7 +39,7 @@ accounts, no networking.
 ```sh
 brew install xcodegen
 xcodegen generate
-open Recall.xcodeproj   # run the Recall scheme
+open Engram.xcodeproj   # run the Engram scheme
 ```
 
 ## Tests
@@ -87,15 +87,15 @@ Focus mode (Pomodoro or deep work, optional goal, optional deck/tag to study
 inside the block) lives in the sidebar's **Focus** entry, with a live timer in
 the menu bar. Everything below is optional — the session works without any of it.
 
-macOS exposes no public API to toggle a Focus filter, so Recall drives two
+macOS exposes no public API to toggle a Focus filter, so Engram drives two
 **Shortcuts you create yourself** (Shortcuts.app → new shortcut → *Set Focus*):
 
 | Shortcut name | What it should do |
 | --- | --- |
-| `Recall Focus On` | Turn Do Not Disturb (or your own Focus) **on** |
-| `Recall Focus Off` | Turn it **off** |
+| `Engram Focus On` | Turn Do Not Disturb (or your own Focus) **on** |
+| `Engram Focus Off` | Turn it **off** |
 
-Name them exactly like that. Recall runs them via `/usr/bin/shortcuts` when a
+Name them exactly like that. Engram runs them via `/usr/bin/shortcuts` when a
 focus block starts and ends. Only the focus engine calls this — the UI never
 toggles it directly (seam 7, `DistractionBlocker`).
 

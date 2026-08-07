@@ -9,7 +9,7 @@ import UserNotifications
 /// the app keeps working, just without reminders.
 public actor ReviewNotificationScheduler {
     /// Fixed so a re-schedule replaces the previous request instead of adding one.
-    private static let identifier = "com.recall.daily-review-reminder"
+    private static let identifier = "com.engram.daily-review-reminder"
 
     private let notifier: LocalNotifier
 

@@ -2,12 +2,12 @@ import SwiftUI
 
 enum AppInfo {
     /// Working title — rename here (and in project.yml), nowhere else.
-    static let name = "Recall"
+    static let name = "Engram"
     static let quickAddWindowID = "quick-add"
 }
 
 @main
-struct RecallApp: App {
+struct EngramApp: App {
     /// Built once. A failure here is shown, never swallowed.
     private let dependencies: Result<AppDependencies, Error>
 

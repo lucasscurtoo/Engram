@@ -7,7 +7,7 @@ import Infrastructure
 @Suite("SwiftDataFocusSessionLogRepository")
 struct FocusSessionLogPersistenceTests {
     @Test func roundTripsAndFiltersByRange() async throws {
-        let container = try ModelContainer.recallInMemory()
+        let container = try ModelContainer.engramInMemory()
         let repository = SwiftDataFocusSessionLogRepository(modelContainer: container)
         let base = Date(timeIntervalSince1970: 1_735_732_800)
 

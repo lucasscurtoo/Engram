@@ -1,24 +1,24 @@
 # XcodeGen manifest. Generate with: xcodegen generate
-name: Recall
+name: Engram
 options:
-  bundleIdPrefix: com.recall # TODO(owner): set your bundle id prefix
+  bundleIdPrefix: com.engram # TODO(owner): set your bundle id prefix
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
 packages:
-  RecallCore:
+  EngramCore:
     path: .
 settings:
   base:
     SWIFT_VERSION: "6.0"
 targets:
-  Recall:
+  Engram:
     type: application
     platform: macOS
     sources:
       - Sources/Presentation
     dependencies:
-      - package: RecallCore
+      - package: EngramCore
         products:
           - Domain
           - Application
@@ -26,9 +26,9 @@ targets:
     info:
       path: Sources/Presentation/Info.plist
       properties:
-        CFBundleDisplayName: Recall # TODO(owner): rename here if the app name changes
+        CFBundleDisplayName: Engram # TODO(owner): rename here if the app name changes
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.recall.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.engram.app
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # TODO(owner): enable App Sandbox + entitlements before release.

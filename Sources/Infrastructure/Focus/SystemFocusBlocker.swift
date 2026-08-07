@@ -2,8 +2,8 @@ import Application
 import Foundation
 
 /// MVP Do Not Disturb hook. macOS ships no public API to toggle a Focus filter, so
-/// the supported path is a pair of user-created Shortcuts ("Recall Focus On" /
-/// "Recall Focus Off") driven through the `shortcuts` CLI — see the README.
+/// the supported path is a pair of user-created Shortcuts ("Engram Focus On" /
+/// "Engram Focus Off") driven through the `shortcuts` CLI — see the README.
 ///
 /// Everything here is best-effort and fire-and-forget: a missing shortcut, a missing
 /// CLI, a sandbox denial or a hung shortcut must never break or stall a focus
@@ -11,8 +11,8 @@ import Foundation
 ///
 /// TODO(owner): SystemWideBlocker via Family Controls / Network Extension (entitlements) post-MVP.
 public actor SystemFocusBlocker: DistractionBlocker {
-    public static let onShortcutName = "Recall Focus On"
-    public static let offShortcutName = "Recall Focus Off"
+    public static let onShortcutName = "Engram Focus On"
+    public static let offShortcutName = "Engram Focus Off"
 
     private let timeout: TimeInterval
 

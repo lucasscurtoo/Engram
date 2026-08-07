@@ -12,10 +12,10 @@ private struct TempStore: ~Copyable {
 
     init() {
         directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("RecallTests-\(UUID().uuidString)", isDirectory: true)
+            .appendingPathComponent("EngramTests-\(UUID().uuidString)", isDirectory: true)
     }
 
-    func open() throws -> ModelContainer { try .recall(directory: directory) }
+    func open() throws -> ModelContainer { try .engram(directory: directory) }
 
     deinit { try? FileManager.default.removeItem(at: directory) }
 }
@@ -89,7 +89,7 @@ private func makeNote(deckID: UUID, front: String, tags: [String] = []) -> Note 
 // MARK: - Cascade
 
 @Test func deckDeleteCascadesButReviewLogsSurvive() async throws {
-    let container = try ModelContainer.recallInMemory()
+    let container = try ModelContainer.engramInMemory()
     let decks = SwiftDataDeckRepository(modelContainer: container)
     let notes = SwiftDataNoteRepository(modelContainer: container)
     let cards = SwiftDataCardRepository(modelContainer: container)
@@ -138,7 +138,7 @@ private func makeNote(deckID: UUID, front: String, tags: [String] = []) -> Note 
 // MARK: - CardQuery
 
 @Test func cardQueryFiltersSortsAndLimits() async throws {
-    let container = try ModelContainer.recallInMemory()
+    let container = try ModelContainer.engramInMemory()
     let decks = SwiftDataDeckRepository(modelContainer: container)
     let notes = SwiftDataNoteRepository(modelContainer: container)
     let cards = SwiftDataCardRepository(modelContainer: container)
@@ -211,7 +211,7 @@ private func makeNote(deckID: UUID, front: String, tags: [String] = []) -> Note 
 }
 
 @Test func noteQueryMatchesFieldValuesCaseInsensitively() async throws {
-    let container = try ModelContainer.recallInMemory()
+    let container = try ModelContainer.engramInMemory()
     let decks = SwiftDataDeckRepository(modelContainer: container)
     let notes = SwiftDataNoteRepository(modelContainer: container)
 
