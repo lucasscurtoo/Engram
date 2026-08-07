@@ -82,6 +82,7 @@ struct CardListView: View {
             }
             .buttonStyle(.bordered)
             .help("New note in this deck")
+            .accessibilityLabel("New note")
         }
         .padding(Theme.space4)
     }

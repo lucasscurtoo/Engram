@@ -33,7 +33,7 @@ struct DeckDetailView: View {
                 Text(DeckTree.fullName(of: summary.deck.id, in: decks))
                     .font(.title2)
                     .fontWeight(.semibold)
-                Text("\(summary.cardCount) cards · \(summary.dueCount) due today")
+                Text("^[\(summary.cardCount) cards](inflect: true) · \(summary.dueCount) due today")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -49,6 +49,7 @@ struct DeckDetailView: View {
             .controlSize(.large)
             .keyboardShortcut("s", modifiers: [.command])
             .help("Study this deck and its subdecks")
+            .accessibilityLabel("Study this deck")
         }
         .padding(Theme.space4)
     }

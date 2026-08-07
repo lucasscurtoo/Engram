@@ -24,22 +24,26 @@ struct StudyCardView: View {
 
     var body: some View {
         VStack(spacing: Theme.space5) {
-            ScrollView {
-                VStack(spacing: Theme.space5) {
-                    fieldStack(fields(front: true))
-                    if model.revealed {
-                        VStack(spacing: Theme.space5) {
-                            // A hairline, not a Divider: the back is revealed *below*
-                            // the front rather than split away from it.
-                            Rectangle()
-                                .fill(.separator)
-                                .frame(height: 1)
-                            fieldStack(fields(front: false))
+            // Short cards sit vertically centered (Mochi); long ones grow and scroll.
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: Theme.space5) {
+                        fieldStack(fields(front: true))
+                        if model.revealed {
+                            VStack(spacing: Theme.space5) {
+                                // A hairline, not a Divider: the back is revealed *below*
+                                // the front rather than split away from it.
+                                Rectangle()
+                                    .fill(.separator)
+                                    .frame(height: 1)
+                                fieldStack(fields(front: false))
+                            }
+                            .transition(revealTransition)
                         }
-                        .transition(revealTransition)
                     }
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: proxy.size.height)
                 }
-                .frame(maxWidth: .infinity)
             }
             .frame(maxHeight: .infinity)
             controls
