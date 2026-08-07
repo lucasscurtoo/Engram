@@ -60,23 +60,60 @@ func drawIcon(px: Int) -> CGImage {
     )
     ctx.restoreGState()
 
-    let center = CGPoint(x: plate.midX, y: plate.midY)
+    // Open book, thin white line art, with an indigo bookmark ribbon.
+    let pw = plate.width
+    let cx = plate.midX
+    let cy = plate.midY - pw * 0.01
+    let w = pw * 0.60          // full open width
+    let h = pw * 0.34          // page height at the outer edges
+    let sag = pw * 0.055       // how far the spine dips below the outer edges
+    let y0 = cy - h / 2        // outer bottom
+    let y1 = cy + h / 2        // outer top
+    let stroke = max(1, pw * 0.032)
 
-    // Thin light ring.
-    ctx.setLineWidth(max(1, plate.width * 0.030))
-    ctx.setStrokeColor(color(0xECECF1, alpha: 0.92))
-    ctx.addArc(
-        center: center, radius: plate.width * 0.26,
-        startAngle: 0, endAngle: 2 * .pi, clockwise: false
-    )
+    let book = CGMutablePath()
+    for side: CGFloat in [-1, 1] {
+        let outerX = cx + side * w / 2
+        let controlX = cx + side * w * 0.24
+        // Top edge: spine (lower) sweeping up and out to the page corner.
+        book.move(to: CGPoint(x: cx, y: y1 - sag))
+        book.addQuadCurve(
+            to: CGPoint(x: outerX, y: y1),
+            control: CGPoint(x: controlX, y: y1)
+        )
+        // Outer page edge.
+        book.addLine(to: CGPoint(x: outerX, y: y0))
+        // Bottom edge back into the spine.
+        book.addQuadCurve(
+            to: CGPoint(x: cx, y: y0 - sag),
+            control: CGPoint(x: controlX, y: y0)
+        )
+    }
+    // Spine.
+    book.move(to: CGPoint(x: cx, y: y1 - sag))
+    book.addLine(to: CGPoint(x: cx, y: y0 - sag))
+
+    ctx.setLineWidth(stroke)
+    ctx.setLineCap(.round)
+    ctx.setLineJoin(.round)
+    ctx.setStrokeColor(color(0xECECF1, alpha: 0.94))
+    ctx.addPath(book)
     ctx.strokePath()
 
-    // Indigo dot, dead center.
+    // Indigo bookmark ribbon over the right page, hanging past the top edge.
+    let ribbonW = pw * 0.075
+    let ribbonX = cx + w * 0.21 - ribbonW / 2
+    let ribbonTop = y1 + pw * 0.065
+    let ribbonBottom = y1 - pw * 0.10
+    let ribbon = CGMutablePath()
+    ribbon.move(to: CGPoint(x: ribbonX, y: ribbonTop))
+    ribbon.addLine(to: CGPoint(x: ribbonX + ribbonW, y: ribbonTop))
+    ribbon.addLine(to: CGPoint(x: ribbonX + ribbonW, y: ribbonBottom))
+    ribbon.addLine(to: CGPoint(x: ribbonX + ribbonW / 2, y: ribbonBottom + ribbonW * 0.55))
+    ribbon.addLine(to: CGPoint(x: ribbonX, y: ribbonBottom))
+    ribbon.closeSubpath()
     ctx.setFillColor(color(0x847DFF))
-    ctx.addArc(
-        center: center, radius: plate.width * 0.095,
-        startAngle: 0, endAngle: 2 * .pi, clockwise: false
-    )
+    ctx.addPath(ribbon)
     ctx.fillPath()
 
     return ctx.makeImage()!
