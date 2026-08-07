@@ -87,8 +87,8 @@ struct ContentView: View {
     @State private var decks: DeckListViewModel
     @State private var selection: AppRoute?
     @State private var launcher = StudyLauncher()
-    /// Collapsed while a focus session runs — the running screen owns the window.
-    @State private var columns = NavigationSplitViewVisibility.automatic
+    /// Hidden while a focus session runs — the running screen owns the window.
+    @State private var showSidebar = true
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -98,10 +98,38 @@ struct ContentView: View {
     }
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columns) {
-            DeckListView(model: decks, selection: $selection)
-                .background(WindowBackground())
-        } detail: {
+        // A plain flat sidebar (Notion-style), not NavigationSplitView: its macOS
+        // treatment floats the sidebar as an inset rounded pane and that cannot be
+        // turned off. One HStack, one hairline, edge to edge.
+        HStack(spacing: 0) {
+            if showSidebar {
+                DeckListView(model: decks, selection: $selection)
+                    .frame(width: 240)
+                    .transition(.move(edge: .leading))
+                Rectangle()
+                    .fill(Theme.hairline)
+                    .frame(width: Theme.hairlineWidth)
+                    .ignoresSafeArea()
+            }
+            detail
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .background(WindowBackground())
+        .background(Theme.bg0.ignoresSafeArea())
+        .environment(launcher)
+        // Dedicated review screen: a sheet covers the sidebar without a second window.
+        .sheet(item: $launcher.request, onDismiss: { Task { await decks.load() } }) { request in
+            ReviewSessionView(request: request, dependencies: dependencies)
+        }
+        .onChange(of: dependencies.focus.isRunning) { _, isRunning in
+            withAnimation(.easeOut(duration: 0.2)) { showSidebar = !isRunning }
+        }
+        .errorAlert(dependencies.errors)
+        .task { await decks.load() }
+    }
+
+    @ViewBuilder
+    private var detail: some View {
             switch selection {
             case .deck(let id):
                 if let summary = decks.summary(for: id) {
@@ -125,17 +153,6 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg0)
             }
-        }
-        .environment(launcher)
-        // Dedicated review screen: a sheet covers the sidebar without a second window.
-        .sheet(item: $launcher.request, onDismiss: { Task { await decks.load() } }) { request in
-            ReviewSessionView(request: request, dependencies: dependencies)
-        }
-        .onChange(of: dependencies.focus.isRunning) { _, isRunning in
-            columns = isRunning ? .detailOnly : .automatic
-        }
-        .errorAlert(dependencies.errors)
-        .task { await decks.load() }
     }
 }
 

@@ -25,10 +25,23 @@ struct DeckListView: View {
         // sidebar's scroll chrome, but with no selection binding AppKit has nothing
         // to paint over the rows.
         List {
-            SectionCaps("Library")
-                .padding(.horizontal, Theme.space2)
-                .padding(.bottom, Theme.space1)
-                .sidebarRow()
+            // Traffic lights overlay this zone (hidden title bar) — keep it clear.
+            Color.clear.frame(height: 26).sidebarRow()
+            HStack(spacing: Theme.space2) {
+                SectionCaps("Library")
+                Spacer(minLength: 0)
+                SidebarIconButton(symbol: "play.fill", help: "Study every deck") {
+                    launcher.study(.all)
+                }
+                .accessibilityLabel("Study all decks")
+                SidebarIconButton(symbol: "plus", help: "New deck") {
+                    sheet = .add(parentID: nil)
+                }
+                .accessibilityLabel("New deck")
+            }
+            .padding(.horizontal, Theme.space2)
+            .padding(.bottom, Theme.space1)
+            .sidebarRow()
             if model.tree.isEmpty {
                 Text(model.isLoading ? "Loading…" : "No decks yet")
                     .font(.callout)
@@ -61,32 +74,14 @@ struct DeckListView: View {
             }
             .sidebarRow()
         }
-        .listStyle(.sidebar)
+        .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, Self.rowHeight)
         .scrollContentBackground(.hidden)
-        .navigationTitle(AppInfo.name)
-        .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 340)
         // Always reachable, never in the way.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             NewDeckButton { sheet = .add(parentID: nil) }
         }
-        // After the inset so the footer sits on the same floor, and over the
-        // sidebar's vibrancy so the layer stack stays readable.
-        .background(Theme.bg0)
-        .toolbar {
-            Button {
-                launcher.study(.all)
-            } label: {
-                Label("Study All", systemImage: "play.fill")
-            }
-            .help("Study every deck")
-            Button {
-                sheet = .add(parentID: nil)
-            } label: {
-                Label("New Deck", systemImage: "plus")
-            }
-            .help("New deck")
-        }
+        .background(Theme.bg0.ignoresSafeArea())
         .sheet(item: $sheet) { sheet in
             switch sheet {
             case .add(let parentID):
@@ -141,6 +136,29 @@ struct DeckListView: View {
         Button("Configure…") { sheet = .configure(deck) }
         Divider()
         Button("Delete…", role: .destructive) { deckPendingDeletion = deck }
+    }
+}
+
+/// Small quiet icon button for the sidebar header (Study All, New Deck).
+private struct SidebarIconButton: View {
+    let symbol: String
+    let help: String
+    let action: () -> Void
+
+    @State private var isHovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(isHovering ? Theme.textPrimary : Theme.textTertiary)
+                .frame(width: 22, height: 22)
+                .background(isHovering ? Theme.bg3 : .clear, in: .rect(cornerRadius: Theme.Radius.control))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { isHovering = $0 }
+        .help(help)
     }
 }
 
