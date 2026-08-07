@@ -12,15 +12,19 @@ public actor LocalNotifier {
 
     public init() {}
 
-    public func requestPermissionIfNeeded() async {
-        guard isAuthorized == nil else { return }
+    /// Returns whether notifications may be posted. Callers that only want the
+    /// side effect can ignore it.
+    @discardableResult
+    public func requestPermissionIfNeeded() async -> Bool {
+        guard isAuthorized == nil else { return isAuthorized == true }
         let center = UNUserNotificationCenter.current()
         if let settings = await center.notificationSettings() as UNNotificationSettings?,
            settings.authorizationStatus == .denied {
             isAuthorized = false
-            return
+            return false
         }
         isAuthorized = (try? await center.requestAuthorization(options: [.alert, .sound])) ?? false
+        return isAuthorized == true
     }
 
     public func notify(title: String, body: String) async {

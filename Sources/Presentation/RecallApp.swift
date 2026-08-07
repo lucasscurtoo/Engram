@@ -46,6 +46,12 @@ struct RecallApp: App {
         .windowResizability(.contentSize)
         .defaultSize(width: 460, height: 520)
 
+        Settings {
+            if case .success(let dependencies) = dependencies {
+                ReminderSettingsView(scheduler: dependencies.reviewNotificationScheduler)
+            }
+        }
+
         // Always-visible focus timer; live countdown while a session runs.
         MenuBarExtra {
             MenuBarTimerMenu(model: focus)

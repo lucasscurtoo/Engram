@@ -18,6 +18,9 @@ final class AppDependencies {
     let reviewLogRepository: SwiftDataReviewLogRepository
     let focusLogRepository: SwiftDataFocusSessionLogRepository
     let deckService: DeckService
+    let statsService: StatsService
+    /// M6: owns the one pending daily reminder. Settings is its only caller.
+    let reviewNotificationScheduler = ReviewNotificationScheduler()
     /// M5: the only distraction blocker in the app. Nothing but the focus engine
     /// calls it — the UI never activates/deactivates it directly.
     let focusBlocker = SystemFocusBlocker()
@@ -39,6 +42,11 @@ final class AppDependencies {
             deckRepository: deckRepository,
             cardRepository: cardRepository,
             noteRepository: noteRepository
+        )
+        statsService = StatsService(
+            reviewLogRepository: reviewLogRepository,
+            cardRepository: cardRepository,
+            focusLogRepository: focusLogRepository
         )
     }
 
