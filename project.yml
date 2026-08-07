@@ -30,4 +30,5 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.recall.app
-        # TODO(owner): enable App Sandbox + entitlements before release (M7).
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        # TODO(owner): enable App Sandbox + entitlements before release.

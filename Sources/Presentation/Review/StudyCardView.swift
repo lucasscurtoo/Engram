@@ -59,6 +59,9 @@ struct StudyCardView: View {
                     }
                     .keyboardShortcut(KeyEquivalent(Character("\(rating.rawValue)")), modifiers: [])
                     .help("Press \(rating.rawValue)")
+                    .accessibilityLabel(
+                        "\(Self.title(of: rating)), next in \(model.intervalLabel(for: rating))"
+                    )
                 }
             }
         } else {
@@ -71,9 +74,18 @@ struct StudyCardView: View {
         }
     }
 
+    @ViewBuilder
     private func fieldStack(_ fields: [NoteType.RenderableField]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            ForEach(fields.indices, id: \.self) { FieldContentView(fields[$0]) }
+            if fields.isEmpty {
+                // Dangling template (see `fields(front:)`) or an all-empty side —
+                // say so rather than render a blank card the user cannot interpret.
+                Text("This side has no content.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(fields.indices, id: \.self) { FieldContentView(fields[$0]) }
+            }
         }
         .font(.title3)
         .textSelection(.enabled)

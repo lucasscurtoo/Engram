@@ -19,6 +19,9 @@ final class AppDependencies {
     let focusLogRepository: SwiftDataFocusSessionLogRepository
     let deckService: DeckService
     let statsService: StatsService
+    /// M7: the app's only error surface. Shared by every scene so a failure raised
+    /// from Quick Add is the same object the main window would have shown.
+    let errors = ErrorReporter()
     /// M6: owns the one pending daily reminder. Settings is its only caller.
     let reviewNotificationScheduler = ReviewNotificationScheduler()
     /// M5: the only distraction blocker in the app. Nothing but the focus engine
@@ -63,8 +66,9 @@ final class AppDependencies {
 
     /// Note types available to the editor. MVP seeds only "Basic", but nothing in the
     /// UI may assume that — falls back to the built-in type if the store is empty.
+    /// A *failed* read is reported; an empty store is not an error.
     func availableNoteTypes() async -> [NoteType] {
-        let stored = (try? await noteTypeRepository.allNoteTypes()) ?? []
+        let stored = await errors.value({ try await noteTypeRepository.allNoteTypes() }, fallback: [])
         return stored.isEmpty ? [.basic] : stored.sorted { $0.name < $1.name }
     }
 }

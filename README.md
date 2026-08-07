@@ -8,6 +8,32 @@ accounts, no networking.
 > Working title. Rename in `Sources/Presentation/RecallApp.swift` (`AppInfo.name`)
 > and `project.yml` — nowhere else.
 
+## Features
+
+- **FSRS v5 scheduling** — ported from py-fsrs 4.1.2 and validated against
+  generated reference vectors; per-deck target retention.
+- **Notes, not just cards** — typed multi-field notes with templates (one
+  "Basic" type today, cloze/reversed slot in later), markdown rendering,
+  free-form tags, live preview.
+- **Decks with subdecks** (`Math::Algebra`), per-deck daily limits and
+  retention, roll-up due counts in the sidebar.
+- **Review sessions** by deck, tag, or everything: front → reveal → four
+  ratings with their predicted intervals. `Space` reveals, `1–4` grade.
+- **Quick Add** (`⌘⇧N`) — small window to file a note without navigating.
+- **Note browser** — text + tag search, edit and delete in place.
+- **Focus mode** — Pomodoro or deep work wrapped around a study queue, goals
+  (minutes or cards), menu bar timer, optional Do Not Disturb hook, break/goal
+  notifications.
+- **Stats** — reviews per day, cards by state, real retention, due forecast,
+  focus minutes per day.
+- **Daily reminder** — one configurable local notification, opt-out respected.
+- **Local-first** — a versioned SwiftData store in Application Support; no
+  account, no telemetry, no network.
+
+## Screenshots
+
+<!-- TODO(owner): add screenshots -->
+
 ## Build
 
 ```sh
@@ -86,16 +112,36 @@ the app target.
 ## Status (milestones)
 
 - [x] **M0** — scaffold: XcodeGen project, SPM core, app opens a window
-- [x] **M1** — FSRS v5 engine, ported from py-fsrs 4.1.2, tests green (15 tests, 9 replay scenarios)
-- [ ] **M2** — SwiftData persistence (contracts in `Sources/Infrastructure/Persistence/`)
-- [ ] **M3** — decks/notes/tags UI, Quick Add, browser
-- [ ] **M4** — review session UI (service logic already implemented + tested)
-- [ ] **M5** — focus mode (Pomodoro/deep work, DND, ambience, menu bar timer)
-- [ ] **M6** — stats (Swift Charts) + daily reminder
-- [ ] **M7** — polish + release
+- [x] **M1** — FSRS v5 engine, ported from py-fsrs 4.1.2 (9 replay scenarios, 1e-4)
+- [x] **M2** — SwiftData persistence, versioned schema, cascade rules
+- [x] **M3** — decks/notes/tags UI, Quick Add, browser
+- [x] **M4** — review session UI with keyboard shortcuts
+- [x] **M5** — focus mode (Pomodoro/deep work, DND hook, menu bar timer, goals)
+- [x] **M6** — stats (Swift Charts) + daily reminder
+- [x] **M7** — polish, error surface, app icon, accessibility pass
 
-See `RECALL_PROJECT_BRIEF.md` (owner's copy) for the full contract. Grep
-`TODO(owner):` for every pending seam.
+The MVP is complete. 34 tests across engine, services and persistence.
+
+## Post-MVP roadmap / known gaps
+
+Every gap is marked `TODO(owner):` at the exact seam it plugs into. Current inventory:
+
+**Content & study**
+- LaTeX renderer (KaTeX in WKWebView) at `ContentRenderer`; `.code`/`.image` content types.
+- New note types (reversed, cloze, typed answer) — re-sync generated cards on edit.
+- Smart decks: saved `CardQuery` filters as sidebar entries.
+- Daily limits should subtract cards already studied today.
+- Per-deck optimized FSRS weights (needs the review log history — already recorded).
+
+**Focus**
+- Bundle 2–3 royalty-free ambience loops (`ambience-rain` / `-whiteNoise` / `-cafe`).
+- System-wide app/website blocking via Family Controls / Network Extension (second `DistractionBlocker` implementation; needs Apple entitlements).
+
+**App**
+- System-wide global hotkey for Quick Add.
+- Refresh the daily notification body with the real due count on app close.
+- Tag token field with completion.
+- App Sandbox + entitlements, real bundle id prefix, screenshots for this README.
 
 ### Notes for contributors/agents
 

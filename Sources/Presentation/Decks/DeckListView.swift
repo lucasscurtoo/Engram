@@ -87,17 +87,6 @@ struct DeckListView: View {
         } message: { _ in
             Text("Its subdecks, notes and cards are deleted too. This cannot be undone.")
         }
-        .alert(
-            "Something went wrong",
-            isPresented: Binding(
-                get: { model.errorMessage != nil },
-                set: { if !$0 { model.errorMessage = nil } }
-            )
-        ) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(model.errorMessage ?? "")
-        }
     }
 
     @ViewBuilder

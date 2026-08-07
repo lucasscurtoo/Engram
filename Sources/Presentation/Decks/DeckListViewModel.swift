@@ -19,12 +19,13 @@ final class DeckListViewModel {
     private(set) var summaries: [DeckService.DeckSummary] = []
     private(set) var tree: [DeckNode] = []
     private(set) var isLoading = false
-    var errorMessage: String?
 
     private let deckService: DeckService
+    private let errors: ErrorReporter
 
-    init(deckService: DeckService) {
+    init(deckService: DeckService, errors: ErrorReporter) {
         self.deckService = deckService
+        self.errors = errors
     }
 
     var decks: [Deck] { summaries.map(\.deck) }
@@ -41,11 +42,9 @@ final class DeckListViewModel {
     func load() async {
         isLoading = true
         defer { isLoading = false }
-        do {
+        await errors.run {
             summaries = try await deckService.summaries(now: .now)
             tree = Self.buildTree(summaries)
-        } catch {
-            errorMessage = error.localizedDescription
         }
     }
 
@@ -66,11 +65,7 @@ final class DeckListViewModel {
     }
 
     private func perform(_ work: () async throws -> Void) async {
-        do {
-            try await work()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
+        await errors.run(work)
         await load()
     }
 

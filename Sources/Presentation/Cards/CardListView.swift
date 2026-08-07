@@ -86,7 +86,10 @@ struct CardListView: View {
 
     @ViewBuilder
     private var content: some View {
-        if notes.isEmpty {
+        if !hasLoaded {
+            // Without this the first frame claims "No notes yet" before the read lands.
+            ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if notes.isEmpty {
             ContentUnavailableView(
                 isFiltering ? "No notes match" : "No notes yet",
                 systemImage: isFiltering ? "magnifyingglass" : "note.text",
@@ -124,8 +127,11 @@ struct CardListView: View {
 
     private func load() async {
         if noteTypesByID.isEmpty {
+            // Not `uniqueKeysWithValues`: a store with two note types sharing an id
+            // would trap. First one wins — the browser only needs a field to render.
             noteTypesByID = Dictionary(
-                uniqueKeysWithValues: await dependencies.availableNoteTypes().map { ($0.id, $0) }
+                await dependencies.availableNoteTypes().map { ($0.id, $0) },
+                uniquingKeysWith: { first, _ in first }
             )
         }
         let query = NoteQuery(
@@ -133,7 +139,8 @@ struct CardListView: View {
             text: searchText.isEmpty ? nil : searchText,
             tag: tagFilter.isEmpty ? nil : tagFilter
         )
-        notes = ((try? await dependencies.noteRepository.notes(matching: query)) ?? [])
+        notes = await dependencies.errors
+            .value({ try await dependencies.noteRepository.notes(matching: query) }, fallback: [])
             .sorted { $0.modifiedAt > $1.modifiedAt }
         hasLoaded = true
     }
@@ -145,7 +152,9 @@ struct CardListView: View {
 
     private func delete(_ note: Note) {
         Task {
-            try? await dependencies.noteRepository.delete(id: note.id)
+            await dependencies.errors.run {
+                try await dependencies.noteRepository.delete(id: note.id)
+            }
             await reload()
         }
     }

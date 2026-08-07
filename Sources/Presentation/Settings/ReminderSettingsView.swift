@@ -24,7 +24,7 @@ struct ReminderSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 380)
+        .frame(minWidth: 380)
         // Re-applied whenever Settings opens, so a permission granted later takes effect.
         .task { await apply() }
         .onChange(of: isEnabled) { Task { await apply() } }

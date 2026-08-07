@@ -43,7 +43,7 @@ struct DeckFormSheet: View {
             let parentID = parentID
             Task { await save(name, parentID) }
         }
-        .frame(width: 400)
+        .frame(minWidth: 400)
     }
 
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -97,7 +97,7 @@ struct DeckConfigSheet: View {
             let config = config
             Task { await save(config) }
         }
-        .frame(width: 440)
+        .frame(minWidth: 440)
     }
 }
 

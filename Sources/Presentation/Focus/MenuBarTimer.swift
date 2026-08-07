@@ -12,8 +12,10 @@ struct MenuBarTimerLabel: View {
     var body: some View {
         if let model, model.isRunning {
             Label(model.timerText, systemImage: model.phaseSymbol)
+                .accessibilityLabel("\(model.phaseTitle), \(model.timerText) remaining")
         } else {
             Image(systemName: "timer")
+                .accessibilityLabel("Focus timer, no session running")
         }
     }
 }

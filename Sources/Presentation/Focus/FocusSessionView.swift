@@ -13,6 +13,8 @@ struct FocusSessionView: View {
     /// For the deck picker in setup.
     let decks: [Deck]
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         Group {
             if model.isRunning {
@@ -81,6 +83,12 @@ struct FocusSessionView: View {
                         ForEach(decks, id: \.id) { deck in
                             Text(DeckTree.fullName(of: deck.id, in: decks)).tag(UUID?.some(deck.id))
                         }
+                    }
+                    .disabled(decks.isEmpty)
+                    if decks.isEmpty || model.deckID == nil {
+                        Text("Without a deck the block runs as a plain timer.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 case .tag:
                     TextField("Tag", text: $model.tag)
@@ -151,14 +159,18 @@ struct FocusSessionView: View {
                 .foregroundStyle(.secondary)
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 Text(model.timerText)
+                    // Deliberately fixed at 72pt: this is the one glanceable element of
+                    // the running screen and it must not reflow every second.
                     .font(.system(size: 72, weight: .light, design: .monospaced))
                     .monospacedDigit()
-                    .contentTransition(.numericText())
+                    .contentTransition(reduceMotion ? .identity : .numericText())
+                    .accessibilityLabel("\(model.phaseTitle), \(model.timerText)")
                 if model.isOpenEnded {
                     Text("∞")
                         .font(.system(size: 34, weight: .light))
                         .foregroundStyle(.tertiary)
                         .help("Open-ended block — the timer counts up")
+                        .accessibilityLabel("Open-ended block, the timer counts up")
                 }
             }
             if let progress = model.goalProgress {

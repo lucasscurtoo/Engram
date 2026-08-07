@@ -32,6 +32,8 @@ struct ReviewSessionView: View {
             Divider()
             content
         }
+        // Fixed on purpose: a review sheet that resizes per card is worse than one
+        // that scrolls, and the card body already scrolls (`StudyCardView`).
         .frame(width: 760, height: 560)
         .task { await model.start() }
     }

@@ -83,7 +83,9 @@ struct ContentView: View {
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
-        _decks = State(initialValue: DeckListViewModel(deckService: dependencies.deckService))
+        _decks = State(initialValue: DeckListViewModel(
+            deckService: dependencies.deckService, errors: dependencies.errors
+        ))
     }
 
     var body: some View {
@@ -118,6 +120,7 @@ struct ContentView: View {
         .onChange(of: dependencies.focus.isRunning) { _, isRunning in
             columns = isRunning ? .detailOnly : .automatic
         }
+        .errorAlert(dependencies.errors)
         .task { await decks.load() }
     }
 }

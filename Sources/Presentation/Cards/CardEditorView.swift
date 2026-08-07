@@ -92,7 +92,8 @@ struct CardEditorView: View {
         } confirm: {
             save()
         }
-        .frame(width: 520, height: 460)
+        // min, not fixed: at large Dynamic Type sizes the form has to be able to grow.
+        .frame(minWidth: 520, minHeight: 460)
         .task { await load() }
     }
 
@@ -129,9 +130,11 @@ struct CardEditorView: View {
         let fields = fields
         let tags = Tags.parse(tagsText)
         let service = dependencies.deckService
+        let errors = dependencies.errors
         let mode = mode
+        // The sheet is already dismissing, so the alert belongs to the window behind it.
         Task {
-            do {
+            await errors.run {
                 switch mode {
                 case .create(let deckID):
                     _ = try await service.addNote(
@@ -142,12 +145,8 @@ struct CardEditorView: View {
                     note.tags = tags
                     try await service.updateNote(note, now: .now)
                 }
-                await onSaved()
-            } catch {
-                // ponytail: editor failures are surfaced by the caller's reload showing
-                // stale data; a dedicated error banner lands with the first real failure mode.
-                assertionFailure("note save failed: \(error)")
             }
+            await onSaved()
         }
     }
 }

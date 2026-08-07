@@ -127,6 +127,8 @@ private struct BigNumber: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 10))
+        // One VoiceOver stop per tile: "Retention, 87%".
+        .accessibilityElement(children: .combine)
     }
 }
 

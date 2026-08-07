@@ -15,10 +15,14 @@ struct QuickAddView: View {
     @State private var fields: [String: String] = [:]
     @State private var tagsText = ""
     @State private var savedCount = 0
+    @State private var hasLoaded = false
 
     var body: some View {
         VStack(spacing: 0) {
-            if decks.isEmpty {
+            if !hasLoaded {
+                // Otherwise the window opens claiming there are no decks.
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if decks.isEmpty {
                 ContentUnavailableView(
                     "No decks yet — create one",
                     systemImage: "rectangle.stack",
@@ -30,6 +34,7 @@ struct QuickAddView: View {
             }
         }
         .frame(minWidth: 420, minHeight: 420)
+        .errorAlert(dependencies.errors)
         .task { await load() }
         .onExitCommand { dismiss() }
     }
@@ -89,10 +94,12 @@ struct QuickAddView: View {
     }
 
     private func load() async {
-        decks = (try? await dependencies.deckRepository.allDecks()) ?? []
+        decks = await dependencies.errors
+            .value({ try await dependencies.deckRepository.allDecks() }, fallback: [])
         noteTypes = await dependencies.availableNoteTypes()
         selectedDeckID = selectedDeckID ?? sortedDecks.first?.id
         selectedNoteTypeID = selectedNoteTypeID ?? noteTypes.first?.id
+        hasLoaded = true
     }
 
     private func save() {
@@ -100,18 +107,19 @@ struct QuickAddView: View {
         let fields = fields
         let tags = Tags.parse(tagsText)
         let service = dependencies.deckService
+        let errors = dependencies.errors
         // Clear immediately so typing can continue while the write lands.
         self.fields = [:]
         tagsText = ""
         Task {
-            do {
+            var saved = false
+            await errors.run {
                 _ = try await service.addNote(
                     deckID: deckID, noteType: noteType, fields: fields, tags: tags, now: .now
                 )
-                savedCount += 1
-            } catch {
-                assertionFailure("quick add failed: \(error)")
+                saved = true
             }
+            if saved { savedCount += 1 }
         }
     }
 }
