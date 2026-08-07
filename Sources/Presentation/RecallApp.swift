@@ -61,6 +61,7 @@ struct ContentView: View {
 
     @State private var decks: DeckListViewModel
     @State private var selection: AppRoute?
+    @State private var launcher = StudyLauncher()
 
     init(dependencies: AppDependencies) {
         self.dependencies = dependencies
@@ -90,6 +91,11 @@ struct ContentView: View {
                     "Select a deck to get started", systemImage: "rectangle.stack"
                 )
             }
+        }
+        .environment(launcher)
+        // Dedicated review screen: a sheet covers the sidebar without a second window.
+        .sheet(item: $launcher.scope, onDismiss: { Task { await decks.load() } }) { scope in
+            ReviewSessionView(scope: scope, dependencies: dependencies)
         }
         .task { await decks.load() }
     }

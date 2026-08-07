@@ -15,7 +15,6 @@ final class AppDependencies {
     let cardRepository: SwiftDataCardRepository
     let noteRepository: SwiftDataNoteRepository
     let noteTypeRepository: SwiftDataNoteTypeRepository
-    /// Unused until M4/M6; kept here so the container is only built once.
     let reviewLogRepository: SwiftDataReviewLogRepository
     let deckService: DeckService
 
@@ -31,6 +30,17 @@ final class AppDependencies {
             deckRepository: deckRepository,
             cardRepository: cardRepository,
             noteRepository: noteRepository
+        )
+    }
+
+    /// One fresh session per study run — `ReviewSessionService` holds the queue state.
+    func makeReviewSession() -> ReviewSessionService {
+        ReviewSessionService(
+            deckRepository: deckRepository,
+            cardRepository: cardRepository,
+            noteRepository: noteRepository,
+            noteTypeRepository: noteTypeRepository,
+            reviewLogRepository: reviewLogRepository
         )
     }
 

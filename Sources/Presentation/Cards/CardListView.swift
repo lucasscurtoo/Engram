@@ -13,6 +13,7 @@ struct CardListView: View {
     let onNotesChanged: () async -> Void
 
     @Environment(AppDependencies.self) private var dependencies
+    @Environment(StudyLauncher.self) private var launcher
 
     @State private var notes: [Note] = []
     @State private var noteTypesByID: [UUID: NoteType] = [:]
@@ -66,6 +67,13 @@ struct CardListView: View {
             TextField("Tag", text: $tagFilter)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 160)
+            Button {
+                launcher.scope = .tag(tagFilter)
+            } label: {
+                Label("Study Tag", systemImage: "play")
+            }
+            .disabled(tagFilter.isEmpty)
+            .help("Study every card tagged “\(tagFilter)”")
             Button {
                 isAddingNote = true
             } label: {

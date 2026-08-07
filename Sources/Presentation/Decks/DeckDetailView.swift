@@ -10,6 +10,8 @@ struct DeckDetailView: View {
     /// Called after a note is added, edited or deleted so the sidebar counts refresh.
     let onNotesChanged: () async -> Void
 
+    @Environment(StudyLauncher.self) private var launcher
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -35,9 +37,9 @@ struct DeckDetailView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Study") {}
-                .disabled(true)
-                .help("M4")
+            Button("Study") { launcher.scope = .deck(summary.deck.id) }
+                .keyboardShortcut("s", modifiers: [.command])
+                .help("Study this deck and its subdecks")
         }
         .padding()
     }

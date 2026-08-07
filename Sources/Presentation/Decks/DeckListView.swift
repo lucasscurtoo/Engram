@@ -11,6 +11,8 @@ struct DeckListView: View {
     @State private var sheet: DeckSheet?
     @State private var deckPendingDeletion: Deck?
 
+    @Environment(StudyLauncher.self) private var launcher
+
     var body: some View {
         List(selection: $selection) {
             Section("Decks") {
@@ -32,6 +34,12 @@ struct DeckListView: View {
         }
         .navigationTitle(AppInfo.name)
         .toolbar {
+            Button {
+                launcher.scope = .all
+            } label: {
+                Label("Study All", systemImage: "play.fill")
+            }
+            .help("Study every deck")
             Button {
                 sheet = .add(parentID: nil)
             } label: {
