@@ -3,26 +3,108 @@ import SwiftUI
 enum AppInfo {
     /// Working title — rename here (and in project.yml), nowhere else.
     static let name = "Recall"
+    static let quickAddWindowID = "quick-add"
 }
 
 @main
 struct RecallApp: App {
+    /// Built once. A failure here is shown, never swallowed.
+    private let dependencies: Result<AppDependencies, Error>
+
+    init() {
+        dependencies = Result { try AppDependencies() }
+    }
+
     var body: some Scene {
         WindowGroup(AppInfo.name) {
-            ContentView()
+            switch dependencies {
+            case .success(let dependencies):
+                ContentView(dependencies: dependencies)
+                    .environment(dependencies)
+            case .failure(let error):
+                StartupErrorView(error: error)
+            }
         }
-        // TODO(owner): M3 — Quick Add window + global keyboard shortcut.
+        .commands {
+            CommandMenu("Notes") {
+                QuickAddCommand()
+            }
+        }
+
+        // Utility window for Quick Add; opened from the Notes menu (Cmd+Shift+N).
+        Window("Quick Add", id: AppInfo.quickAddWindowID) {
+            if case .success(let dependencies) = dependencies {
+                QuickAddView()
+                    .environment(dependencies)
+            }
+        }
+        .windowResizability(.contentSize)
+        .defaultSize(width: 460, height: 520)
+
         // TODO(owner): M5 — MenuBarExtra focus timer (MenuBarTimer.swift).
     }
 }
 
+/// Split out so it can own `openWindow`, which `App` bodies cannot read directly.
+private struct QuickAddCommand: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        Button("Quick Add") { openWindow(id: AppInfo.quickAddWindowID) }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+        // TODO(owner): system-wide global hotkey (post-MVP)
+    }
+}
+
 struct ContentView: View {
+    let dependencies: AppDependencies
+
+    @State private var decks: DeckListViewModel
+    @State private var selection: AppRoute?
+
+    init(dependencies: AppDependencies) {
+        self.dependencies = dependencies
+        _decks = State(initialValue: DeckListViewModel(deckService: dependencies.deckService))
+    }
+
     var body: some View {
         NavigationSplitView {
-            DeckListView()
+            DeckListView(model: decks, selection: $selection)
         } detail: {
-            Text("Select a deck to get started")
-                .foregroundStyle(.secondary)
+            switch selection {
+            case .deck(let id):
+                if let summary = decks.summary(for: id) {
+                    DeckDetailView(summary: summary, decks: decks.decks) {
+                        await decks.load()
+                    }
+                    .id(id)
+                } else {
+                    ContentUnavailableView("Deck not found", systemImage: "questionmark.folder")
+                }
+            case .stats:
+                StatsView()
+            case .focus:
+                FocusSessionView()
+            case nil:
+                ContentUnavailableView(
+                    "Select a deck to get started", systemImage: "rectangle.stack"
+                )
+            }
         }
+        .task { await decks.load() }
+    }
+}
+
+/// Shown instead of the app when the store cannot be opened.
+struct StartupErrorView: View {
+    let error: Error
+
+    var body: some View {
+        ContentUnavailableView {
+            Label("\(AppInfo.name) could not open its library", systemImage: "exclamationmark.triangle")
+        } description: {
+            Text(error.localizedDescription)
+        }
+        .frame(minWidth: 420, minHeight: 260)
     }
 }

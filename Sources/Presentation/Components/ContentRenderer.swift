@@ -8,15 +8,26 @@ protocol ContentRenderer<Output> {
     func render(_ raw: String) -> Output
 }
 
-/// Renders one resolved note field according to its declared content type.
-/// All card content in the app flows through here.
+/// Renders one note field according to its declared content type.
+/// All note/card content in the app flows through here.
 struct FieldContentView: View {
-    let field: NoteType.RenderableField
+    let def: FieldDef
+    let content: String
+
+    init(def: FieldDef, content: String) {
+        self.def = def
+        self.content = content
+    }
+
+    /// Preferred entry point for card sides: `noteType.frontFields(...)` / `backFields(...)`.
+    init(_ field: NoteType.RenderableField) {
+        self.init(def: field.def, content: field.content)
+    }
 
     var body: some View {
-        switch field.def.contentType {
+        switch def.contentType {
         case .markdown:
-            MarkdownRenderer().render(field.content)
+            MarkdownRenderer().render(content)
         // TODO(owner): plug LaTeXRenderer here ($...$ / $$...$$ via KaTeX in WKWebView).
         }
     }
