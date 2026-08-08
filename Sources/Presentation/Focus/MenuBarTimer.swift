@@ -41,6 +41,10 @@ struct MenuBarTimerMenu: View {
         } else {
             Text("No focus session")
         }
+        SettingsLink {
+            Text("Settings…")
+        }
+        .keyboardShortcut(",")
         Divider()
         Button("Quit \(AppInfo.name)") { NSApp.terminate(nil) }
     }

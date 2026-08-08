@@ -301,10 +301,10 @@ final class FocusSessionViewModel {
         await ambience.play(ambienceTrack, volume: ambienceVolume)
     }
 
-    /// Distinct chimes for the two transitions that matter mid-session: winding
-    /// down into a break vs. snapping back to work. System sounds, no assets.
-    private func chime(_ name: String) {
-        NSSound(named: name)?.play()
+    /// Distinct chimes for the two transitions that matter mid-session, user-picked
+    /// in Settings (Focus sounds). System sounds, no assets.
+    private func chime(settingKey: String, default defaultName: String) {
+        ChimeSound.play(UserDefaults.standard.string(forKey: settingKey) ?? defaultName)
     }
 
     private func apply(_ events: [FocusEvent], announce: Bool = true) async {
@@ -312,12 +312,12 @@ final class FocusSessionViewModel {
             switch event {
             case .phaseStarted(.focusing):
                 if announce {
-                    chime("Ping")
+                    chime(settingKey: "sound.focusStart", default: "Ping")
                     await notifier.notify(title: "Back to focus", body: "Your next block has started.")
                 }
             case .phaseStarted(.shortBreak), .phaseStarted(.longBreak):
                 if announce {
-                    chime("Glass")
+                    chime(settingKey: "sound.breakStart", default: "Glass")
                     await notifier.notify(title: "Break time", body: "Step away for a moment.")
                 }
             case .phaseStarted:
